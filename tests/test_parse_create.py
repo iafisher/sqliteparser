@@ -21,11 +21,37 @@ class ParseCreateTests(unittest.TestCase):
                         ast.Column(name="name", type="TEXT"),
                         ast.Column(name="age", type="INTEGER"),
                     ],
-                    constraints=[],
-                    as_select=None,
-                    temporary=False,
-                    without_rowid=False,
-                    if_not_exists=False,
+                ),
+            ],
+        )
+
+    def test_parse_create_statement_with_column_constraints(self):
+        sql = """
+        CREATE TABLE people(
+          id INTEGER PRIMARY KEY,
+          name TEXT NOT NULL,
+          age INTEGER
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(
+                            name="id",
+                            type="INTEGER",
+                            constraints=[ast.PrimaryKeyConstraint()],
+                        ),
+                        ast.Column(
+                            name="name",
+                            type="TEXT",
+                            constraints=[ast.NotNullConstraint()],
+                        ),
+                        ast.Column(name="age", type="INTEGER"),
+                    ],
                 ),
             ],
         )

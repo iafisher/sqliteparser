@@ -65,7 +65,27 @@ class Parser:
     def match_column_definition(self):
         name_token = self.lexer.expect(TokenType.IDENTIFIER)
         type_token = self.lexer.expect(TokenType.IDENTIFIER)
-        return ast.Column(name=name_token.value, type=type_token.value)
+        constraints = []
+
+        token = self.lexer.next()
+        if token.type == TokenType.KEYWORD and token.value == "PRIMARY":
+            constraints.append(self.match_primary_key_constraint())
+        elif token.type == TokenType.KEYWORD and token.value == "NOT":
+            constraints.append(self.match_not_null_constraint())
+        else:
+            self.lexer.push(token)
+
+        return ast.Column(
+            name=name_token.value, type=type_token.value, constraints=constraints
+        )
+
+    def match_not_null_constraint(self):
+        self.lexer.expect(TokenType.KEYWORD, "NULL")
+        return ast.NotNullConstraint()
+
+    def match_primary_key_constraint(self):
+        self.lexer.expect(TokenType.KEYWORD, "KEY")
+        return ast.PrimaryKeyConstraint()
 
 
 def parse(program):
