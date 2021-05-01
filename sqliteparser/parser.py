@@ -22,7 +22,7 @@ class Parser:
         return statements
 
     def match_statement(self):
-        token = self.lexer.next()
+        token = self.lexer.advance()
         if token.type == TokenType.KEYWORD:
             if token.value == "CREATE":
                 return self.match_create_statement()
@@ -38,13 +38,13 @@ class Parser:
 
         columns = []
         while True:
-            token = self.lexer.next()
+            token = self.lexer.advance()
             if token.type == TokenType.RIGHT_PARENTHESIS:
                 break
             self.lexer.push(token)
             columns.append(self.match_column_definition())
 
-            token = self.lexer.next()
+            token = self.lexer.advance()
             if token.type == TokenType.COMMA:
                 continue
             elif token.type == TokenType.RIGHT_PARENTHESIS:
@@ -67,7 +67,7 @@ class Parser:
         type_token = self.lexer.expect(TokenType.IDENTIFIER)
         constraints = []
 
-        token = self.lexer.next()
+        token = self.lexer.advance()
         if token.type == TokenType.KEYWORD and token.value == "PRIMARY":
             constraints.append(self.match_primary_key_constraint())
         elif token.type == TokenType.KEYWORD and token.value == "NOT":
@@ -99,7 +99,7 @@ class Parser:
         left = self.match_prefix()
 
         while True:
-            token = self.lexer.next()
+            token = self.lexer.advance()
             p = PRECEDENCE.get(token.value)
             if p is None or precedence >= p:
                 self.lexer.push(token)
@@ -113,7 +113,7 @@ class Parser:
         return ast.Infix(operator_token.value, left, right)
 
     def match_prefix(self):
-        token = self.lexer.next()
+        token = self.lexer.advance()
         if token.type == TokenType.IDENTIFIER:
             return ast.Identifier(token.value)
         elif token.type == TokenType.LEFT_PARENTHESIS:

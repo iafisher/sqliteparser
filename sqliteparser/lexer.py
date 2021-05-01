@@ -37,7 +37,7 @@ class Lexer:
         if self.done():
             raise SQLiteParserError("premature end of input")
 
-        token = self.next()
+        token = self.advance()
         if token.type == TokenType.UNKNOWN:
             raise SQLiteParserError("unknown token")
 
@@ -49,7 +49,7 @@ class Lexer:
 
         return token
 
-    def next(self):
+    def advance(self):
         if self.pushed_token is not None:
             ret = self.pushed_token
             self.pushed_token = None
@@ -60,11 +60,11 @@ class Lexer:
         if self.index == len(self.program):
             return None
 
-        ret = self._next()
+        ret = self._advance()
         self.read_whitespace()
         return ret
 
-    def _next(self):
+    def _advance(self):
         c = self.c()
         if c.isalpha():
             return self.read_symbol()
@@ -94,13 +94,13 @@ class Lexer:
 
     def read_whitespace(self):
         while not self.done() and self.c().isspace():
-            self.advance()
+            self.next_character()
 
     def read_symbol(self):
         start = self.index
         start_column = self.column
         while not self.done() and is_symbol_character(self.c()):
-            self.advance()
+            self.next_character()
 
         value = self.program[start : self.index]
         if value in SQL_KEYWORDS:
@@ -122,14 +122,14 @@ class Lexer:
         start = self.index
         start_column = self.column
 
-        self.advance()
+        self.next_character()
         while not self.done() and self.c() != "'":
-            self.advance()
+            self.next_character()
 
         if self.done():
             raise SQLiteParserError("unterminated string literal")
         else:
-            self.advance()
+            self.next_character()
 
         return Token(
             type=TokenType.STRING_LITERAL,
@@ -138,7 +138,7 @@ class Lexer:
             column=start_column,
         )
 
-    def advance(self):
+    def next_character(self):
         if self.c() == "\n":
             self.line += 1
             self.column = 1
@@ -161,7 +161,7 @@ class Lexer:
         line = self.line
         column = self.column
         for _ in range(length):
-            self.advance()
+            self.next_character()
         return Token(type=type, value=value, line=line, column=column)
 
 
