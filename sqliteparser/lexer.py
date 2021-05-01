@@ -31,7 +31,15 @@ class Lexer:
         self.index = 0
         self.line = 1
         self.column = 1
+
         self.pushed_token = None
+        self.current_token = None
+        self.advance()
+
+    def current(self):
+        return (
+            self.pushed_token if self.pushed_token is not None else self.current_token
+        )
 
     def expect(self, type=None, value=None):
         if self.done():
@@ -60,9 +68,9 @@ class Lexer:
         if self.index == len(self.program):
             return None
 
-        ret = self._advance()
+        self.current_token = self._advance()
         self.read_whitespace()
-        return ret
+        return self.current_token
 
     def _advance(self):
         c = self.c()

@@ -22,7 +22,7 @@ class Parser:
         return statements
 
     def match_statement(self):
-        token = self.lexer.advance()
+        token = self.lexer.current()
         if token.type == TokenType.KEYWORD:
             if token.value == "CREATE":
                 return self.match_create_statement()
@@ -105,10 +105,11 @@ class Parser:
                 self.lexer.push(token)
                 break
 
-            left = self.match_infix(left, token, p)
+            left = self.match_infix(left, p)
         return left
 
-    def match_infix(self, left, operator_token, precedence):
+    def match_infix(self, left, precedence):
+        operator_token = self.lexer.current()
         right = self.match_expression(precedence)
         return ast.Infix(operator_token.value, left, right)
 
