@@ -34,9 +34,14 @@ class Parser:
             raise SQLiteParserError(f"unexpected token type: {token.type}")
 
     def match_create_statement(self):
-        self.lexer.expect(TokenType.KEYWORD, "TABLE")
-        name_token = self.lexer.expect(TokenType.IDENTIFIER)
+        token = self.lexer.expect(TokenType.KEYWORD, ("TABLE", "TEMPORARY", "TEMP"))
+        if token.value in ("TEMPORARY", "TEMP"):
+            temporary = True
+            self.lexer.expect(TokenType.KEYWORD, "TABLE")
+        else:
+            temporary = False
 
+        name_token = self.lexer.expect(TokenType.IDENTIFIER)
         token = self.lexer.expect((TokenType.DOT, TokenType.LEFT_PARENTHESIS))
         if token.type == TokenType.DOT:
             table_name_token = self.lexer.expect(TokenType.IDENTIFIER)
@@ -66,7 +71,7 @@ class Parser:
             columns=columns,
             constraints=[],
             as_select=None,
-            temporary=False,
+            temporary=temporary,
             without_rowid=False,
             if_not_exists=False,
         )

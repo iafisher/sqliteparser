@@ -105,3 +105,25 @@ class ParseCreateTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_parse_create_temporary_table_statement(self):
+        sql = """
+        CREATE TEMPORARY TABLE people(
+          name TEXT,
+          age INTEGER
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(name="name", type="TEXT"),
+                        ast.Column(name="age", type="INTEGER"),
+                    ],
+                    temporary=True,
+                ),
+            ],
+        )
