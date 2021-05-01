@@ -4,7 +4,7 @@ from sqliteparser import ast, parse
 
 
 class ParseCreateTests(unittest.TestCase):
-    def test_parse_simple_create_statement(self):
+    def test_parse_simple_create_table_statement(self):
         sql = """
         CREATE TABLE people(
           name TEXT,
@@ -25,7 +25,7 @@ class ParseCreateTests(unittest.TestCase):
             ],
         )
 
-    def test_parse_create_statement_with_column_constraints(self):
+    def test_parse_create_table_statement_with_column_constraints(self):
         sql = """
         CREATE TABLE people(
           id INTEGER PRIMARY KEY,
@@ -56,7 +56,7 @@ class ParseCreateTests(unittest.TestCase):
             ],
         )
 
-    def test_parse_create_statement_with_simple_check_constraint(self):
+    def test_parse_create_table_statement_with_simple_check_constraint(self):
         sql = """
         CREATE TABLE people(
           name TEXT CHECK(name != '')
@@ -85,7 +85,7 @@ class ParseCreateTests(unittest.TestCase):
             ],
         )
 
-    def test_parse_create_statement_with_explicit_schema_name(self):
+    def test_parse_create_table_statement_with_explicit_schema_name(self):
         sql = """
         CREATE TABLE main.people(
           name TEXT,
