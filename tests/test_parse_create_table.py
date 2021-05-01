@@ -127,3 +127,25 @@ class ParseCreateTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_parse_create_table_without_rowid(self):
+        sql = """
+        CREATE TABLE people(
+          name TEXT,
+          age INTEGER
+        ) WITHOUT ROWID;
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(name="name", type="TEXT"),
+                        ast.Column(name="age", type="INTEGER"),
+                    ],
+                    without_rowid=True,
+                ),
+            ],
+        )

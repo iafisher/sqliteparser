@@ -66,13 +66,21 @@ class Parser:
             else:
                 raise SQLiteParserError
 
+        token = self.lexer.advance()
+        if token.type == TokenType.KEYWORD and token.value == "WITHOUT":
+            self.lexer.expect(TokenType.IDENTIFIER, "ROWID")
+            without_rowid = True
+        else:
+            self.lexer.push(token)
+            without_rowid = False
+
         return ast.CreateStatement(
             name=name,
             columns=columns,
             constraints=[],
             as_select=None,
             temporary=temporary,
-            without_rowid=False,
+            without_rowid=without_rowid,
             if_not_exists=False,
         )
 
