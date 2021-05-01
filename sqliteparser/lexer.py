@@ -20,6 +20,8 @@ class TokenType(enum.Enum):
     RIGHT_PARENTHESIS = enum.auto()
     COMMA = enum.auto()
     SEMICOLON = enum.auto()
+    NOT_EQ = enum.auto()
+    STRING_LITERAL = enum.auto()
     UNKNOWN = enum.auto()
 
 
@@ -66,6 +68,8 @@ class Lexer:
         c = self.c()
         if c.isalpha():
             return self.read_symbol()
+        elif c == "'":
+            return self.read_string_literal()
         elif c == "(":
             return self.character_token(TokenType.LEFT_PARENTHESIS)
         elif c == ")":
@@ -74,6 +78,8 @@ class Lexer:
             return self.character_token(TokenType.COMMA)
         elif c == ";":
             return self.character_token(TokenType.SEMICOLON)
+        elif self.prefix(2) == "!=":
+            return self.multi_character_token(TokenType.NOT_EQ, 2)
         else:
             return self.character_token(TokenType.UNKNOWN)
 
@@ -93,7 +99,7 @@ class Lexer:
     def read_symbol(self):
         start = self.index
         start_column = self.column
-        while not self.done() and is_symbol_character(self.program[self.index]):
+        while not self.done() and is_symbol_character(self.c()):
             self.advance()
 
         value = self.program[start : self.index]
@@ -112,6 +118,26 @@ class Lexer:
                 column=start_column,
             )
 
+    def read_string_literal(self):
+        start = self.index
+        start_column = self.column
+
+        self.advance()
+        while not self.done() and self.c() != "'":
+            self.advance()
+
+        if self.done():
+            raise SQLiteParserError("unterminated string literal")
+        else:
+            self.advance()
+
+        return Token(
+            type=TokenType.STRING_LITERAL,
+            value=self.program[start : self.index],
+            line=self.line,
+            column=start_column,
+        )
+
     def advance(self):
         if self.c() == "\n":
             self.line += 1
@@ -122,13 +148,20 @@ class Lexer:
         self.index += 1
 
     def c(self):
-        return self.program[self.index]
+        return self.prefix(1)
+
+    def prefix(self, length):
+        return self.program[self.index : self.index + length]
 
     def character_token(self, type):
-        value = self.c()
+        return self.multi_character_token(type, 1)
+
+    def multi_character_token(self, type, length):
+        value = self.program[self.index : self.index + length]
         line = self.line
         column = self.column
-        self.advance()
+        for _ in range(length):
+            self.advance()
         return Token(type=type, value=value, line=line, column=column)
 
 

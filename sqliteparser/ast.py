@@ -30,6 +30,11 @@ class Column:
 
 
 @attrs
+class CheckConstraint:
+    expr = attrib()
+
+
+@attrs
 class NamedConstraint:
     constraint = attrib()
 
@@ -44,3 +49,20 @@ class PrimaryKeyConstraint:
     ascending = attrib(default=True)
     on_conflict = attrib(default=OnConflict.ABORT)
     autoincrement = attrib(default=False)
+
+
+@attrs
+class Infix:
+    operator = attrib()
+    left = attrib()
+    right = attrib()
+
+
+@attrs
+class Identifier:
+    value = attrib()
+
+
+@attrs
+class StringLiteral:
+    value = attrib()

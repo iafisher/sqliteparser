@@ -72,6 +72,8 @@ class Parser:
             constraints.append(self.match_primary_key_constraint())
         elif token.type == TokenType.KEYWORD and token.value == "NOT":
             constraints.append(self.match_not_null_constraint())
+        elif token.type == TokenType.KEYWORD and token.value == "CHECK":
+            constraints.append(self.match_check_constraint())
         else:
             self.lexer.push(token)
 
@@ -86,6 +88,73 @@ class Parser:
     def match_primary_key_constraint(self):
         self.lexer.expect(TokenType.KEYWORD, "KEY")
         return ast.PrimaryKeyConstraint()
+
+    def match_check_constraint(self):
+        self.lexer.expect(TokenType.LEFT_PARENTHESIS)
+        expr = self.match_expression()
+        self.lexer.expect(TokenType.RIGHT_PARENTHESIS)
+        return ast.CheckConstraint(expr)
+
+    def match_expression(self, precedence=-1):
+        left = self.match_prefix()
+
+        while True:
+            token = self.lexer.next()
+            p = PRECEDENCE.get(token.value)
+            if p is None or precedence >= p:
+                self.lexer.push(token)
+                break
+
+            left = self.match_infix(left, token, p)
+        return left
+
+    def match_infix(self, left, operator_token, precedence):
+        right = self.match_expression(precedence)
+        return ast.Infix(operator_token.value, left, right)
+
+    def match_prefix(self):
+        token = self.lexer.next()
+        if token.type == TokenType.IDENTIFIER:
+            return ast.Identifier(token.value)
+        elif token.type == TokenType.LEFT_PARENTHESIS:
+            e = self.match_expression()
+            self.lexer.expect(TokenType.RIGHT_PARENTHESIS)
+            return e
+        elif token.type == TokenType.STRING_LITERAL:
+            return ast.StringLiteral(token.value[1:-1])
+        else:
+            raise SQLiteParserError(token.type)
+
+
+# From https://sqlite.org/lang_expr.html
+PRECEDENCE = {
+    "OR": 0,
+    "AND": 1,
+    "=": 2,
+    "==": 2,
+    "!=": 2,
+    "<>": 2,
+    "IS": 2,
+    "IN": 2,
+    "LIKE": 2,
+    "GLOB": 2,
+    "MATCH": 2,
+    "REGEXP": 2,
+    "<": 3,
+    "<=": 3,
+    ">": 3,
+    ">=": 3,
+    "<<": 4,
+    ">>": 4,
+    "&": 4,
+    "|": 4,
+    "+": 5,
+    "-": 5,
+    "*": 6,
+    "/": 6,
+    "%": 6,
+    "||": 7,
+}
 
 
 def parse(program):
