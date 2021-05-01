@@ -1,0 +1,2 @@
+class SQLiteParserError(Exception):
+    pass
