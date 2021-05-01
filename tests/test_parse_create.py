@@ -84,3 +84,24 @@ class ParseCreateTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_parse_create_statement_with_explicit_schema_name(self):
+        sql = """
+        CREATE TABLE main.people(
+          name TEXT,
+          age INTEGER
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name=ast.TableName("main", "people"),
+                    columns=[
+                        ast.Column(name="name", type="TEXT"),
+                        ast.Column(name="age", type="INTEGER"),
+                    ],
+                ),
+            ],
+        )

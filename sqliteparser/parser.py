@@ -36,7 +36,14 @@ class Parser:
     def match_create_statement(self):
         self.lexer.expect(TokenType.KEYWORD, "TABLE")
         name_token = self.lexer.expect(TokenType.IDENTIFIER)
-        self.lexer.expect(TokenType.LEFT_PARENTHESIS)
+
+        token = self.lexer.expect((TokenType.DOT, TokenType.LEFT_PARENTHESIS))
+        if token.type == TokenType.DOT:
+            table_name_token = self.lexer.expect(TokenType.IDENTIFIER)
+            name = ast.TableName(name_token.value, table_name_token.value)
+            self.lexer.expect(TokenType.LEFT_PARENTHESIS)
+        else:
+            name = name_token.value
 
         columns = []
         while True:
@@ -55,7 +62,7 @@ class Parser:
                 raise SQLiteParserError
 
         return ast.CreateStatement(
-            name=name_token.value,
+            name=name,
             columns=columns,
             constraints=[],
             as_select=None,

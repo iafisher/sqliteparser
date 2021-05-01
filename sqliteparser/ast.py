@@ -76,3 +76,9 @@ class String:
 @attrs
 class Integer:
     value = attrib()
+
+
+@attrs
+class TableName:
+    schema_name = attrib()
+    table_name = attrib()

@@ -20,6 +20,7 @@ class TokenType(enum.Enum):
     RIGHT_PARENTHESIS = enum.auto()
     COMMA = enum.auto()
     SEMICOLON = enum.auto()
+    DOT = enum.auto()
     NOT_EQ = enum.auto()
     STRING = enum.auto()
     INTEGER = enum.auto()
@@ -42,7 +43,10 @@ class Lexer:
             self.pushed_token if self.pushed_token is not None else self.current_token
         )
 
-    def expect(self, type=None, value=None):
+    def expect(self, type_or_types=None, value=None):
+        if isinstance(type_or_types, TokenType):
+            type_or_types = (type_or_types,)
+
         if self.done():
             raise SQLiteParserError("premature end of input")
 
@@ -50,8 +54,9 @@ class Lexer:
         if token.type == TokenType.UNKNOWN:
             raise SQLiteParserError("unknown token")
 
-        if type is not None and token.type != type:
-            raise SQLiteParserError(f"expected {type!r}, got {token.type!r}")
+        if type_or_types is not None and token.type not in type_or_types:
+            expected = " or ".join(map(repr, type_or_types))
+            raise SQLiteParserError(f"expected {expected}, got {token.type!r}")
 
         if value is not None and token.value != value:
             raise SQLiteParserError(f"expected {value!r}, got {token.value!r}")
@@ -89,6 +94,8 @@ class Lexer:
             return self.character_token(TokenType.COMMA)
         elif c == ";":
             return self.character_token(TokenType.SEMICOLON)
+        elif c == ".":
+            return self.character_token(TokenType.DOT)
         elif self.prefix(2) == "!=":
             return self.multi_character_token(TokenType.NOT_EQ, 2)
         else:
