@@ -23,6 +23,11 @@ class CreateStatement:
 
 
 @attrs
+class SelectStatement:
+    columns = attrib()
+
+
+@attrs
 class Column:
     name = attrib()
     type = attrib()
@@ -64,5 +69,10 @@ class Identifier:
 
 
 @attrs
-class StringLiteral:
+class String:
+    value = attrib()
+
+
+@attrs
+class Integer:
     value = attrib()

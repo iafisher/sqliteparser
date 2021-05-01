@@ -75,9 +75,7 @@ class ParseCreateTests(unittest.TestCase):
                             constraints=[
                                 ast.CheckConstraint(
                                     ast.Infix(
-                                        "!=",
-                                        ast.Identifier("name"),
-                                        ast.StringLiteral(""),
+                                        "!=", ast.Identifier("name"), ast.String(""),
                                     )
                                 )
                             ],

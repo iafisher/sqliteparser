@@ -21,7 +21,8 @@ class TokenType(enum.Enum):
     COMMA = enum.auto()
     SEMICOLON = enum.auto()
     NOT_EQ = enum.auto()
-    STRING_LITERAL = enum.auto()
+    STRING = enum.auto()
+    INTEGER = enum.auto()
     UNKNOWN = enum.auto()
 
 
@@ -76,8 +77,10 @@ class Lexer:
         c = self.c()
         if c.isalpha():
             return self.read_symbol()
+        elif c.isdigit():
+            return self.read_integer()
         elif c == "'":
-            return self.read_string_literal()
+            return self.read_string()
         elif c == "(":
             return self.character_token(TokenType.LEFT_PARENTHESIS)
         elif c == ")":
@@ -126,7 +129,18 @@ class Lexer:
                 column=start_column,
             )
 
-    def read_string_literal(self):
+    def read_integer(self):
+        start = self.index
+        start_column = self.column
+        while not self.done() and self.c().isdigit():
+            self.next_character()
+
+        value = self.program[start : self.index]
+        return Token(
+            type=TokenType.INTEGER, value=value, line=self.line, column=start_column
+        )
+
+    def read_string(self):
         start = self.index
         start_column = self.column
 
@@ -140,7 +154,7 @@ class Lexer:
             self.next_character()
 
         return Token(
-            type=TokenType.STRING_LITERAL,
+            type=TokenType.STRING,
             value=self.program[start : self.index],
             line=self.line,
             column=start_column,

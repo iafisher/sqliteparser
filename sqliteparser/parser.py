@@ -26,6 +26,8 @@ class Parser:
         if token.type == TokenType.KEYWORD:
             if token.value == "CREATE":
                 return self.match_create_statement()
+            elif token.value == "SELECT":
+                return self.match_select_statement()
             else:
                 raise SQLiteParserError(f"unexpected keyword: {token.value}")
         else:
@@ -61,6 +63,10 @@ class Parser:
             without_rowid=False,
             if_not_exists=False,
         )
+
+    def match_select_statement(self):
+        e = self.match_expression()
+        return ast.SelectStatement(columns=[e])
 
     def match_column_definition(self):
         name_token = self.lexer.expect(TokenType.IDENTIFIER)
@@ -100,6 +106,9 @@ class Parser:
 
         while True:
             token = self.lexer.advance()
+            if token is None:
+                break
+
             p = PRECEDENCE.get(token.value)
             if p is None or precedence >= p:
                 self.lexer.push(token)
@@ -121,8 +130,10 @@ class Parser:
             e = self.match_expression()
             self.lexer.expect(TokenType.RIGHT_PARENTHESIS)
             return e
-        elif token.type == TokenType.STRING_LITERAL:
-            return ast.StringLiteral(token.value[1:-1])
+        elif token.type == TokenType.STRING:
+            return ast.String(token.value[1:-1])
+        elif token.type == TokenType.INTEGER:
+            return ast.Integer(int(token.value))
         else:
             raise SQLiteParserError(token.type)
 
