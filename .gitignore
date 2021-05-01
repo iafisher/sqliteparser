@@ -1,0 +1,21 @@
+*.swp
+*~
+*.save
+*.DS_Store
+
+# Python
+__pycache__
+*.pyo
+*.pyc
+*.mypy_cache
+.venv
+/dist
+/build
+*.egg-info
+
+# JavaScript
+node_modules
+
+# Rust
+/target
+*.rs.bk
