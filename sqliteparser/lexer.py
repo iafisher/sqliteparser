@@ -43,31 +43,43 @@ class Lexer:
             self.pushed_token if self.pushed_token is not None else self.current_token
         )
 
-    def expect(self, type_or_types=None, value_or_values=None):
-        if isinstance(type_or_types, TokenType):
-            type_or_types = (type_or_types,)
+    def check_current(self, types_and_values):
+        """
+        Checks that the current token matches at least one of the items in
+        `types_and_values`.
 
-        if isinstance(value_or_values, str):
-            value_or_values = (value_or_values,)
+        Each item in `types_and_values` must be one of the following types:
 
+          - A string, which matches a KEYWORD token with that string's value
+          - A TokenType instance, which matches a token with that type
+          - A (TokenType, string) pair, which matches a token with that type and that
+              value.
+        """
         if self.done():
             raise SQLiteParserError("premature end of input")
 
-        token = self.advance()
+        token = self.current()
         if token.type == TokenType.UNKNOWN:
             raise SQLiteParserError("unknown token")
 
-        if type_or_types is not None and token.type not in type_or_types:
-            expected = " or ".join(map(repr, type_or_types))
-            raise SQLiteParserError(f"expected {expected}, got {token.type!r}")
+        for type_or_value in types_and_values:
+            if isinstance(type_or_value, str):
+                if token.type == TokenType.KEYWORD and token.value == type_or_value:
+                    return token
+            elif isinstance(type_or_value, tuple):
+                if token.type == type_or_value[0] and token.value == type_or_value[1]:
+                    return token
+            else:
+                if token.type == type_or_value:
+                    return token
 
-        if value_or_values is not None and token.value not in value_or_values:
-            expected = " or ".join(map(repr, value_or_values))
-            raise SQLiteParserError(f"expected {expected}, got {token.value!r}")
+        expected = " or ".join(
+            type_or_value if isinstance(type_or_value, str) else repr(type_or_value)
+            for type_or_value in types_and_values
+        )
+        raise SQLiteParserError(f"expected {expected}, got {token.value!r}")
 
-        return token
-
-    def advance(self):
+    def advance(self, expecting=None):
         if self.pushed_token is not None:
             ret = self.pushed_token
             self.pushed_token = None
@@ -75,10 +87,16 @@ class Lexer:
 
         self.read_whitespace()
 
-        if self.index == len(self.program):
+        if self.done():
+            if expecting is not None:
+                raise SQLiteParserError("premature end of input")
+
             return None
 
         self.current_token = self._advance()
+        if expecting is not None:
+            self.check_current(expecting)
+
         self.read_whitespace()
         return self.current_token
 

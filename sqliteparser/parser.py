@@ -17,7 +17,7 @@ class Parser:
             statements.append(statement)
 
             if not self.lexer.done():
-                self.lexer.expect(TokenType.SEMICOLON)
+                self.lexer.advance(expecting=[TokenType.SEMICOLON])
 
         return statements
 
@@ -34,31 +34,30 @@ class Parser:
             raise SQLiteParserError(f"unexpected token type: {token.type}")
 
     def match_create_statement(self):
-        token = self.lexer.expect(TokenType.KEYWORD, ("TABLE", "TEMPORARY", "TEMP"))
+        token = self.lexer.advance(expecting=["TABLE", "TEMPORARY", "TEMP"])
         if token.value in ("TEMPORARY", "TEMP"):
             temporary = True
-            self.lexer.expect(TokenType.KEYWORD, "TABLE")
+            self.lexer.advance(expecting=["TABLE"])
         else:
             temporary = False
 
-        self.lexer.advance()
-        token = self.lexer.current()
-        if token.type == TokenType.KEYWORD and token.value == "IF":
-            self.lexer.expect(TokenType.KEYWORD, "NOT")
-            self.lexer.expect(TokenType.KEYWORD, "EXISTS")
+        token = self.lexer.advance(expecting=["IF", TokenType.IDENTIFIER])
+        if token.value == "IF":
+            self.lexer.advance(expecting=["NOT"])
+            self.lexer.advance(expecting=["EXISTS"])
             if_not_exists = True
-            name_token = self.lexer.expect(TokenType.IDENTIFIER)
-        elif token.type == TokenType.IDENTIFIER:
+            name_token = self.lexer.advance(expecting=[TokenType.IDENTIFIER])
+        else:
             if_not_exists = False
             name_token = token
-        else:
-            raise SQLiteParserError
 
-        token = self.lexer.expect((TokenType.DOT, TokenType.LEFT_PARENTHESIS))
+        token = self.lexer.advance(
+            expecting=[TokenType.DOT, TokenType.LEFT_PARENTHESIS]
+        )
         if token.type == TokenType.DOT:
-            table_name_token = self.lexer.expect(TokenType.IDENTIFIER)
+            table_name_token = self.lexer.advance(expecting=[TokenType.IDENTIFIER])
             name = ast.TableName(name_token.value, table_name_token.value)
-            self.lexer.expect(TokenType.LEFT_PARENTHESIS)
+            self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
         else:
             name = name_token.value
 
@@ -70,17 +69,15 @@ class Parser:
             self.lexer.push(token)
             columns.append(self.match_column_definition())
 
-            token = self.lexer.advance()
-            if token.type == TokenType.COMMA:
-                continue
-            elif token.type == TokenType.RIGHT_PARENTHESIS:
+            token = self.lexer.advance(
+                expecting=[TokenType.COMMA, TokenType.RIGHT_PARENTHESIS]
+            )
+            if token.type == TokenType.RIGHT_PARENTHESIS:
                 break
-            else:
-                raise SQLiteParserError
 
         token = self.lexer.advance()
         if token.type == TokenType.KEYWORD and token.value == "WITHOUT":
-            self.lexer.expect(TokenType.IDENTIFIER, "ROWID")
+            self.lexer.advance(expecting=[(TokenType.IDENTIFIER, "ROWID")])
             without_rowid = True
         else:
             self.lexer.push(token)
@@ -101,8 +98,8 @@ class Parser:
         return ast.SelectStatement(columns=[e])
 
     def match_column_definition(self):
-        name_token = self.lexer.expect(TokenType.IDENTIFIER)
-        type_token = self.lexer.expect(TokenType.IDENTIFIER)
+        name_token = self.lexer.advance(expecting=[TokenType.IDENTIFIER])
+        type_token = self.lexer.advance(expecting=[TokenType.IDENTIFIER])
         constraints = []
 
         token = self.lexer.advance()
@@ -120,17 +117,17 @@ class Parser:
         )
 
     def match_not_null_constraint(self):
-        self.lexer.expect(TokenType.KEYWORD, "NULL")
+        self.lexer.advance(expecting=["NULL"])
         return ast.NotNullConstraint()
 
     def match_primary_key_constraint(self):
-        self.lexer.expect(TokenType.KEYWORD, "KEY")
+        self.lexer.advance(expecting=["KEY"])
         return ast.PrimaryKeyConstraint()
 
     def match_check_constraint(self):
-        self.lexer.expect(TokenType.LEFT_PARENTHESIS)
+        self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
         expr = self.match_expression()
-        self.lexer.expect(TokenType.RIGHT_PARENTHESIS)
+        self.lexer.advance(expecting=[TokenType.RIGHT_PARENTHESIS])
         return ast.CheckConstraint(expr)
 
     def match_expression(self, precedence=-1):
@@ -160,7 +157,7 @@ class Parser:
             return ast.Identifier(token.value)
         elif token.type == TokenType.LEFT_PARENTHESIS:
             e = self.match_expression()
-            self.lexer.expect(TokenType.RIGHT_PARENTHESIS)
+            self.lexer.advance(expecting=[TokenType.RIGHT_PARENTHESIS])
             return e
         elif token.type == TokenType.STRING:
             return ast.String(token.value[1:-1])
