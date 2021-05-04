@@ -41,7 +41,19 @@ class Parser:
         else:
             temporary = False
 
-        name_token = self.lexer.expect(TokenType.IDENTIFIER)
+        self.lexer.advance()
+        token = self.lexer.current()
+        if token.type == TokenType.KEYWORD and token.value == "IF":
+            self.lexer.expect(TokenType.KEYWORD, "NOT")
+            self.lexer.expect(TokenType.KEYWORD, "EXISTS")
+            if_not_exists = True
+            name_token = self.lexer.expect(TokenType.IDENTIFIER)
+        elif token.type == TokenType.IDENTIFIER:
+            if_not_exists = False
+            name_token = token
+        else:
+            raise SQLiteParserError
+
         token = self.lexer.expect((TokenType.DOT, TokenType.LEFT_PARENTHESIS))
         if token.type == TokenType.DOT:
             table_name_token = self.lexer.expect(TokenType.IDENTIFIER)
@@ -81,7 +93,7 @@ class Parser:
             as_select=None,
             temporary=temporary,
             without_rowid=without_rowid,
-            if_not_exists=False,
+            if_not_exists=if_not_exists,
         )
 
     def match_select_statement(self):

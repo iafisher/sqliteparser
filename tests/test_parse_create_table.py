@@ -149,3 +149,25 @@ class ParseCreateTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_parse_create_table_if_not_exists(self):
+        sql = """
+        CREATE TABLE IF NOT EXISTS people(
+          name TEXT,
+          age INTEGER
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(name="name", type="TEXT"),
+                        ast.Column(name="age", type="INTEGER"),
+                    ],
+                    if_not_exists=True,
+                ),
+            ],
+        )
