@@ -171,12 +171,22 @@ class Lexer:
         )
 
     def read_string(self):
-        start = self.index
         start_column = self.column
+        characters = []
 
         self.next_character()
-        while not self.done() and self.c() != "'":
-            self.next_character()
+        while not self.done():
+            if self.c() == "'":
+                # SQL escapes single quotes by doubling them.
+                if self.prefix(2) == "''":
+                    characters.append("'")
+                    self.next_character()
+                    self.next_character()
+                else:
+                    break
+            else:
+                characters.append(self.c())
+                self.next_character()
 
         if self.done():
             raise SQLiteParserError("unterminated string literal")
@@ -185,7 +195,7 @@ class Lexer:
 
         return Token(
             type=TokenType.STRING,
-            value=self.program[start : self.index],
+            value="".join(characters),
             line=self.line,
             column=start_column,
         )

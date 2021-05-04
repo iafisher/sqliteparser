@@ -186,7 +186,7 @@ class Parser:
             return e
         elif token.type == TokenType.STRING:
             self.lexer.advance()
-            return ast.String(token.value[1:-1])
+            return ast.String(token.value)
         elif token.type == TokenType.INTEGER:
             self.lexer.advance()
             return ast.Integer(int(token.value))
