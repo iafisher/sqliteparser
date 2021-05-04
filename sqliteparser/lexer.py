@@ -43,7 +43,7 @@ class Lexer:
             self.pushed_token if self.pushed_token is not None else self.current_token
         )
 
-    def check_current(self, types_and_values):
+    def check(self, types_and_values):
         """
         Checks that the current token matches at least one of the items in
         `types_and_values`. If the current token does match, it is returned. If not, a
@@ -96,7 +96,7 @@ class Lexer:
 
         self.current_token = self._advance()
         if expecting is not None:
-            self.check_current(expecting)
+            self.check(expecting)
 
         self.read_whitespace()
         return self.current_token

@@ -120,7 +120,7 @@ class Parser:
         return ast.SelectStatement(columns=[e])
 
     def match_column_definition(self):
-        name_token = self.lexer.check_current([TokenType.IDENTIFIER])
+        name_token = self.lexer.check([TokenType.IDENTIFIER])
         type_token = self.lexer.advance(expecting=[TokenType.IDENTIFIER])
         constraints = []
 
@@ -150,7 +150,7 @@ class Parser:
         self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
         self.lexer.advance()
         expr = self.match_expression()
-        self.lexer.check_current([TokenType.RIGHT_PARENTHESIS])
+        self.lexer.check([TokenType.RIGHT_PARENTHESIS])
         return ast.CheckConstraint(expr)
 
     def match_expression(self, precedence=-1):
