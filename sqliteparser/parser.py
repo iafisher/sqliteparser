@@ -3,7 +3,33 @@ from .exceptions import SQLiteParserError
 from .lexer import Lexer, TokenType
 
 
+def parse(program):
+    """
+    Parse the SQL program into a list of AST objects.
+    """
+    lexer = Lexer(program)
+    parser = Parser(lexer)
+    return parser.parse()
+
+
 class Parser:
+    """
+    The SQL parser.
+
+    It is implemented as a recursive-descent parser. Each match_XYZ method obeys the
+    following protocol, EXCEPT for match_expression:
+
+      - It assumes that the lexer is positioned at the first token of the fragment to be
+        matched, e.g. match_create_statement assumes that self.lexer.current() will
+        return the CREATE token.
+
+      - It leaves the lexer positioned at one past the last token of the fragment.
+
+    match_expression instead assumes that the lexer is positioned at one before the
+    expression fragment, and leaves the lexer positioned at the last token of the
+    expression fragment.
+    """
+
     def __init__(self, lexer):
         self.lexer = lexer
 
@@ -66,7 +92,6 @@ class Parser:
             token = self.lexer.advance()
             if token.type == TokenType.RIGHT_PARENTHESIS:
                 break
-            self.lexer.push(token)
             columns.append(self.match_column_definition())
 
             token = self.lexer.advance(
@@ -98,7 +123,7 @@ class Parser:
         return ast.SelectStatement(columns=[e])
 
     def match_column_definition(self):
-        name_token = self.lexer.advance(expecting=[TokenType.IDENTIFIER])
+        name_token = self.lexer.check_current([TokenType.IDENTIFIER])
         type_token = self.lexer.advance(expecting=[TokenType.IDENTIFIER])
         constraints = []
 
@@ -196,9 +221,3 @@ PRECEDENCE = {
     "%": 6,
     "||": 7,
 }
-
-
-def parse(program):
-    lexer = Lexer(program)
-    parser = Parser(lexer)
-    return parser.parse()

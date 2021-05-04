@@ -46,7 +46,8 @@ class Lexer:
     def check_current(self, types_and_values):
         """
         Checks that the current token matches at least one of the items in
-        `types_and_values`.
+        `types_and_values`. If the current token does match, it is returned. If not, a
+        SQLiteParserError is raised.
 
         Each item in `types_and_values` must be one of the following types:
 
