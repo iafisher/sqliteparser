@@ -17,17 +17,13 @@ class Parser:
     The SQL parser.
 
     It is implemented as a recursive-descent parser. Each match_XYZ method obeys the
-    following protocol, EXCEPT for match_expression:
+    following protocol:
 
       - It assumes that the lexer is positioned at the first token of the fragment to be
         matched, e.g. match_create_statement assumes that self.lexer.current() will
         return the CREATE token.
 
       - It leaves the lexer positioned at one past the last token of the fragment.
-
-    match_expression instead assumes that the lexer is positioned at one before the
-    expression fragment, and leaves the lexer positioned at the last token of the
-    expression fragment.
     """
 
     def __init__(self, lexer):
@@ -119,6 +115,7 @@ class Parser:
         )
 
     def match_select_statement(self):
+        self.lexer.advance()
         e = self.match_expression()
         return ast.SelectStatement(columns=[e])
 
@@ -151,21 +148,21 @@ class Parser:
 
     def match_check_constraint(self):
         self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
+        self.lexer.advance()
         expr = self.match_expression()
-        self.lexer.advance(expecting=[TokenType.RIGHT_PARENTHESIS])
+        self.lexer.check_current([TokenType.RIGHT_PARENTHESIS])
         return ast.CheckConstraint(expr)
 
     def match_expression(self, precedence=-1):
         left = self.match_prefix()
 
         while True:
-            token = self.lexer.advance()
+            token = self.lexer.current()
             if token is None:
                 break
 
             p = PRECEDENCE.get(token.value)
             if p is None or precedence >= p:
-                self.lexer.push(token)
                 break
 
             left = self.match_infix(left, p)
@@ -173,20 +170,26 @@ class Parser:
 
     def match_infix(self, left, precedence):
         operator_token = self.lexer.current()
+        self.lexer.advance()
         right = self.match_expression(precedence)
         return ast.Infix(operator_token.value, left, right)
 
     def match_prefix(self):
-        token = self.lexer.advance()
+        token = self.lexer.current()
         if token.type == TokenType.IDENTIFIER:
+            self.lexer.advance()
             return ast.Identifier(token.value)
         elif token.type == TokenType.LEFT_PARENTHESIS:
+            self.lexer.advance()
             e = self.match_expression()
             self.lexer.advance(expecting=[TokenType.RIGHT_PARENTHESIS])
+            self.lexer.advance()
             return e
         elif token.type == TokenType.STRING:
+            self.lexer.advance()
             return ast.String(token.value[1:-1])
         elif token.type == TokenType.INTEGER:
+            self.lexer.advance()
             return ast.Integer(int(token.value))
         else:
             raise SQLiteParserError(token.type)
