@@ -90,9 +90,7 @@ class Parser:
                 break
             columns.append(self.match_column_definition())
 
-            token = self.lexer.advance(
-                expecting=[TokenType.COMMA, TokenType.RIGHT_PARENTHESIS]
-            )
+            token = self.lexer.check([TokenType.COMMA, TokenType.RIGHT_PARENTHESIS])
             if token.type == TokenType.RIGHT_PARENTHESIS:
                 break
 
@@ -131,8 +129,6 @@ class Parser:
             constraints.append(self.match_not_null_constraint())
         elif token.type == TokenType.KEYWORD and token.value == "CHECK":
             constraints.append(self.match_check_constraint())
-        else:
-            self.lexer.push(token)
 
         return ast.Column(
             name=name_token.value, type=type_token.value, constraints=constraints
@@ -140,10 +136,12 @@ class Parser:
 
     def match_not_null_constraint(self):
         self.lexer.advance(expecting=["NULL"])
+        self.lexer.advance()
         return ast.NotNullConstraint()
 
     def match_primary_key_constraint(self):
         self.lexer.advance(expecting=["KEY"])
+        self.lexer.advance()
         return ast.PrimaryKeyConstraint()
 
     def match_check_constraint(self):
@@ -151,6 +149,7 @@ class Parser:
         self.lexer.advance()
         expr = self.match_expression()
         self.lexer.check([TokenType.RIGHT_PARENTHESIS])
+        self.lexer.advance()
         return ast.CheckConstraint(expr)
 
     def match_expression(self, precedence=-1):
