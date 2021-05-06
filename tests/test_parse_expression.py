@@ -35,3 +35,8 @@ class ParseExpressionTests(unittest.TestCase):
             parse(r"SELECT '\ \n '' '"),
             [ast.SelectStatement(columns=[ast.String("\\ \\n ' ")])],
         )
+
+    def test_parse_blob_literal(self):
+        self.assertEqual(
+            parse(r"SELECT X'41'"), [ast.SelectStatement(columns=[ast.Blob(b"A")])],
+        )

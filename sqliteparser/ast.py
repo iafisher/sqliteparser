@@ -134,6 +134,11 @@ class String:
 
 
 @attrs
+class Blob:
+    value = attrib()
+
+
+@attrs
 class Integer:
     value = attrib()
 

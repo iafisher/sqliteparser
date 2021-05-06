@@ -392,6 +392,8 @@ class Parser:
                 "CURRENT_TIMESTAMP",
             ]
         )
+
+        # TODO(2021-05-05): Merge this with match_prefix?
         if token.type == TokenType.LEFT_PARENTHESIS:
             self.lexer.advance()
             e = self.match_expression()
@@ -401,6 +403,9 @@ class Parser:
         elif token.type == TokenType.STRING:
             self.lexer.advance()
             return ast.String(token.value)
+        elif token.type == TokenType.BLOB:
+            self.lexer.advance()
+            return ast.Blob(token.value)
         elif token.type == TokenType.INTEGER:
             self.lexer.advance()
             return ast.Integer(int(token.value))
@@ -480,6 +485,9 @@ class Parser:
         elif token.type == TokenType.STRING:
             self.lexer.advance()
             return ast.String(token.value)
+        elif token.type == TokenType.BLOB:
+            self.lexer.advance()
+            return ast.Blob(token.value)
         elif token.type == TokenType.INTEGER:
             self.lexer.advance()
             return ast.Integer(int(token.value))

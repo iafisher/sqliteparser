@@ -1,4 +1,5 @@
 import enum
+import string
 
 from attr import attrib, attrs
 
@@ -23,6 +24,7 @@ class TokenType(enum.Enum):
     DOT = enum.auto()
     NOT_EQ = enum.auto()
     STRING = enum.auto()
+    BLOB = enum.auto()
     INTEGER = enum.auto()
     UNKNOWN = enum.auto()
 
@@ -103,7 +105,9 @@ class Lexer:
 
     def _advance(self):
         c = self.c()
-        if c.isalpha():
+        if c.upper() == "X" and self.peek() == "'":
+            return self.read_blob()
+        elif c.isalpha():
             return self.read_symbol()
         elif c.isdigit():
             return self.read_integer()
@@ -170,6 +174,42 @@ class Lexer:
             type=TokenType.INTEGER, value=value, line=self.line, column=start_column
         )
 
+    def read_blob(self):
+        start_column = self.column
+        characters = []
+
+        self.next_character()
+        self.next_character()
+        while not self.done() and self.c() != "'":
+            d1 = self.c()
+
+            self.next_character()
+            if self.done():
+                raise SQLiteParserError("unterminated blob literal")
+
+            d2 = self.c()
+
+            if d1 not in string.hexdigits:
+                raise SQLiteParserError(f"invalid hex digit: {d1!r}")
+
+            if d2 not in string.hexdigits:
+                raise SQLiteParserError(f"invalid hex digit: {d2!r}")
+
+            characters.append(int(d1 + d2, base=16))
+            self.next_character()
+
+        if self.done():
+            raise SQLiteParserError("unterminated blob literal")
+        else:
+            self.next_character()
+
+        return Token(
+            type=TokenType.BLOB,
+            value=bytes(characters),
+            line=self.line,
+            column=start_column,
+        )
+
     def read_string(self):
         start_column = self.column
         characters = []
@@ -211,6 +251,9 @@ class Lexer:
 
     def c(self):
         return self.prefix(1)
+
+    def peek(self, n=1):
+        return self.program[self.index + n]
 
     def prefix(self, length):
         return self.program[self.index : self.index + length]
