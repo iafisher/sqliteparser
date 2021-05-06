@@ -66,13 +66,13 @@ class NamedConstraint:
 
 @attrs
 class NotNullConstraint:
-    on_conflict = attrib(default=OnConflict.ABORT)
+    on_conflict = attrib(default=None)
 
 
 @attrs
 class PrimaryKeyConstraint:
     ascending = attrib(default=True)
-    on_conflict = attrib(default=OnConflict.ABORT)
+    on_conflict = attrib(default=None)
     autoincrement = attrib(default=False)
 
 
