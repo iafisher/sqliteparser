@@ -84,11 +84,20 @@ class Parser:
             name = name_token.value
 
         columns = []
+        constraints = []
         while True:
             token = self.lexer.advance()
             if token.type == TokenType.RIGHT_PARENTHESIS:
                 break
-            columns.append(self.match_column_definition())
+
+            column_or_constraint = self.match_column_or_constraint()
+            if isinstance(column_or_constraint, ast.Column):
+                if constraints:
+                    raise SQLiteParserError
+
+                columns.append(column_or_constraint)
+            else:
+                constraints.append(column_or_constraint)
 
             token = self.lexer.check([TokenType.COMMA, TokenType.RIGHT_PARENTHESIS])
             if token.type == TokenType.RIGHT_PARENTHESIS:
@@ -105,7 +114,7 @@ class Parser:
         return ast.CreateStatement(
             name=name,
             columns=columns,
-            constraints=[],
+            constraints=constraints,
             as_select=None,
             temporary=temporary,
             without_rowid=without_rowid,
@@ -117,7 +126,14 @@ class Parser:
         e = self.match_expression()
         return ast.SelectStatement(columns=[e])
 
-    def match_column_definition(self):
+    def match_column_or_constraint(self):
+        token = self.lexer.current()
+        if token.type == TokenType.KEYWORD and token.value == "FOREIGN":
+            return self.match_foreign_key_constraint()
+        elif token.type == TokenType.IDENTIFIER:
+            return self.match_column()
+
+    def match_column(self):
         name_token = self.lexer.check([TokenType.IDENTIFIER])
         type_token = self.lexer.advance(expecting=[TokenType.IDENTIFIER])
         constraints = []
@@ -132,6 +148,99 @@ class Parser:
 
         return ast.Column(
             name=name_token.value, type=type_token.value, constraints=constraints
+        )
+
+    def match_foreign_key_constraint(self):
+        self.lexer.check(["FOREIGN"])
+        self.lexer.advance(expecting=["KEY"])
+
+        self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
+        self.lexer.advance()
+        columns = self.match_identifier_list()
+        self.lexer.check([TokenType.RIGHT_PARENTHESIS])
+        self.lexer.advance(expecting=["REFERENCES"])
+
+        foreign_table = self.lexer.advance(expecting=[TokenType.IDENTIFIER]).value
+
+        token = self.lexer.advance()
+        if token.type == TokenType.LEFT_PARENTHESIS:
+            self.lexer.advance()
+            foreign_columns = self.match_identifier_list()
+            self.lexer.check([TokenType.RIGHT_PARENTHESIS])
+            token = self.lexer.advance()
+        else:
+            foreign_columns = []
+
+        on_delete = None
+        on_update = None
+        match = None
+        deferrable = None
+        initially_deferred = None
+
+        while True:
+            if token.value == "ON":
+                delete_or_update = self.lexer.advance(expecting=["DELETE", "UPDATE"])
+                token = self.lexer.advance(
+                    expecting=["SET", "CASCADE", "RESTRICT", "NO"]
+                )
+                if token.value == "SET":
+                    token = self.lexer.advance(expecting=["NULL", "DEFAULT"])
+                    value = (
+                        ast.OnDeleteOrUpdate.SET_NULL
+                        if token.value == "NULL"
+                        else ast.OnDeleteOrUpdate.SET_DEFAULT
+                    )
+                elif token.value == "NO":
+                    self.lexer.advance(expecting=["ACTION"])
+                    value = ast.OnDeleteOrUpdate.NO_ACTION
+                elif token.value == "CASCADE":
+                    value = ast.OnDeleteOrUpdate.CASCADE
+                elif token.value == "RESTRICT":
+                    value = ast.OnDeleteOrUpdate.RESTRICT
+
+                if delete_or_update.value == "DELETE":
+                    on_delete = value
+                else:
+                    on_update = value
+            elif token.value == "MATCH":
+                match_token = self.lexer.advance(
+                    expecting=["SIMPLE", "FULL", "PARTIAL"]
+                )
+                if match_token.value == "FULL":
+                    match = ast.ForeignKeyMatch.FULL
+                elif match_token.value == "PARTIAL":
+                    match = ast.ForeignKeyMatch.PARTIAL
+                else:
+                    match = ast.ForeignKeyMatch.SIMPLE
+            elif token.value == "NOT" or token.value == "DEFERRABLE":
+                if token.value == "NOT":
+                    self.lexer.advance(expecting=["DEFERRABLE"])
+                    deferrable = False
+                else:
+                    deferrable = True
+
+                token = self.lexer.advance()
+                if not (token.type == TokenType.KEYWORD and token.value == "INITIALLY"):
+                    break
+
+                token = self.lexer.advance(expecting=["DEFERRED", "IMMEDIATE"])
+                initially_deferred = bool(token.value == "DEFERRED")
+                self.lexer.advance()
+                break
+            else:
+                break
+
+            token = self.lexer.advance()
+
+        return ast.ForeignKeyConstraint(
+            columns=columns,
+            foreign_table=foreign_table,
+            foreign_columns=foreign_columns,
+            on_delete=on_delete,
+            on_update=on_update,
+            match=match,
+            deferrable=deferrable,
+            initially_deferred=initially_deferred,
         )
 
     def match_not_null_constraint(self):
@@ -192,6 +301,19 @@ class Parser:
             return ast.Integer(int(token.value))
         else:
             raise SQLiteParserError(token.type)
+
+    def match_identifier_list(self):
+        identifiers = []
+        while True:
+            token = self.lexer.current()
+            if token.type == TokenType.IDENTIFIER:
+                identifiers.append(token.value)
+                self.lexer.advance()
+            elif token.type == TokenType.COMMA:
+                self.lexer.advance()
+            else:
+                break
+        return identifiers
 
 
 # From https://sqlite.org/lang_expr.html

@@ -171,3 +171,142 @@ class ParseCreateTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_parse_create_table_with_foreign_keys_multiple_on_delete_clauses(self):
+        sql = """
+        CREATE TABLE people(
+            job_id INTEGER,
+            FOREIGN KEY (job_id) REFERENCES jobs
+              ON DELETE SET NULL
+              ON DELETE NO ACTION
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[ast.Column(name="job_id", type="INTEGER")],
+                    constraints=[
+                        ast.ForeignKeyConstraint(
+                            columns=["job_id"],
+                            foreign_table="jobs",
+                            foreign_columns=[],
+                            on_delete=ast.OnDeleteOrUpdate.NO_ACTION,
+                            on_update=None,
+                            match=None,
+                            deferrable=None,
+                            initially_deferred=None,
+                        ),
+                    ],
+                )
+            ],
+        )
+
+    def test_parse_create_table_with_foreign_keys_deferrable_constraints(self):
+        sql = """
+        CREATE TABLE people(
+            id1 INTEGER,
+            id2 INTEGER,
+            id3 INTEGER,
+            FOREIGN KEY (id1) REFERENCES table1 NOT DEFERRABLE,
+            FOREIGN KEY (id2) REFERENCES table2 DEFERRABLE,
+            FOREIGN KEY (id3) REFERENCES table3 DEFERRABLE INITIALLY IMMEDIATE
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(name="id1", type="INTEGER"),
+                        ast.Column(name="id2", type="INTEGER"),
+                        ast.Column(name="id3", type="INTEGER"),
+                    ],
+                    constraints=[
+                        ast.ForeignKeyConstraint(
+                            columns=["id1"],
+                            foreign_table="table1",
+                            foreign_columns=[],
+                            on_delete=None,
+                            on_update=None,
+                            match=None,
+                            deferrable=False,
+                            initially_deferred=None,
+                        ),
+                        ast.ForeignKeyConstraint(
+                            columns=["id2"],
+                            foreign_table="table2",
+                            foreign_columns=[],
+                            on_delete=None,
+                            on_update=None,
+                            match=None,
+                            deferrable=True,
+                            initially_deferred=None,
+                        ),
+                        ast.ForeignKeyConstraint(
+                            columns=["id3"],
+                            foreign_table="table3",
+                            foreign_columns=[],
+                            on_delete=None,
+                            on_update=None,
+                            match=None,
+                            deferrable=True,
+                            initially_deferred=False,
+                        ),
+                    ],
+                )
+            ],
+        )
+
+    def test_parse_create_table_with_foreign_keys(self):
+        sql = """
+        CREATE TABLE people(
+            team_id INTEGER,
+            job_id INTEGER,
+            FOREIGN KEY (team_id) REFERENCES teams,
+            FOREIGN KEY (job_id) REFERENCES jobs(id)
+              ON DELETE SET NULL
+              MATCH FULL
+              ON UPDATE CASCADE
+              DEFERRABLE INITIALLY DEFERRED
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(name="team_id", type="INTEGER"),
+                        ast.Column(name="job_id", type="INTEGER"),
+                    ],
+                    constraints=[
+                        ast.ForeignKeyConstraint(
+                            columns=["team_id"],
+                            foreign_table="teams",
+                            foreign_columns=[],
+                            on_delete=None,
+                            on_update=None,
+                            match=None,
+                            deferrable=None,
+                            initially_deferred=None,
+                        ),
+                        ast.ForeignKeyConstraint(
+                            columns=["job_id"],
+                            foreign_table="jobs",
+                            foreign_columns=["id"],
+                            on_delete=ast.OnDeleteOrUpdate.SET_NULL,
+                            on_update=ast.OnDeleteOrUpdate.CASCADE,
+                            match=ast.ForeignKeyMatch.FULL,
+                            deferrable=True,
+                            initially_deferred=True,
+                        ),
+                    ],
+                )
+            ],
+        )

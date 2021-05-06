@@ -11,6 +11,20 @@ class OnConflict(enum.Enum):
     REPLACE = enum.auto()
 
 
+class OnDeleteOrUpdate(enum.Enum):
+    SET_NULL = enum.auto()
+    SET_DEFAULT = enum.auto()
+    CASCADE = enum.auto()
+    RESTRICT = enum.auto()
+    NO_ACTION = enum.auto()
+
+
+class ForeignKeyMatch(enum.Enum):
+    SIMPLE = enum.auto()
+    FULL = enum.auto()
+    PARTIAL = enum.auto()
+
+
 @attrs
 class CreateStatement:
     name = attrib()
@@ -54,6 +68,18 @@ class PrimaryKeyConstraint:
     ascending = attrib(default=True)
     on_conflict = attrib(default=OnConflict.ABORT)
     autoincrement = attrib(default=False)
+
+
+@attrs
+class ForeignKeyConstraint:
+    columns = attrib()
+    foreign_table = attrib()
+    foreign_columns = attrib()
+    on_delete = attrib(default=None)
+    on_update = attrib(default=None)
+    match = attrib(default=None)
+    deferrable = attrib(default=None)
+    initially_deferred = attrib(default=None)
 
 
 @attrs
