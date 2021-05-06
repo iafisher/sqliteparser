@@ -310,3 +310,36 @@ class ParseCreateTests(unittest.TestCase):
                 )
             ],
         )
+
+    def test_parse_create_table_statement_with_collating_sequence(self):
+        sql = """
+        CREATE TABLE people(
+          name TEXT COLLATE NOCASE,
+          age INTEGER COLLATE BINARY
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(
+                            name="name",
+                            type="TEXT",
+                            constraints=[
+                                ast.CollateConstraint(ast.CollatingSequence.NOCASE)
+                            ],
+                        ),
+                        ast.Column(
+                            name="age",
+                            type="INTEGER",
+                            constraints=[
+                                ast.CollateConstraint(ast.CollatingSequence.BINARY)
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )

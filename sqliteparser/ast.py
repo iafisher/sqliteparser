@@ -25,6 +25,12 @@ class ForeignKeyMatch(enum.Enum):
     PARTIAL = enum.auto()
 
 
+class CollatingSequence(enum.Enum):
+    BINARY = enum.auto()
+    NOCASE = enum.auto()
+    RTRIM = enum.auto()
+
+
 @attrs
 class CreateStatement:
     name = attrib()
@@ -68,6 +74,11 @@ class PrimaryKeyConstraint:
     ascending = attrib(default=True)
     on_conflict = attrib(default=OnConflict.ABORT)
     autoincrement = attrib(default=False)
+
+
+@attrs
+class CollateConstraint:
+    sequence = attrib()
 
 
 @attrs

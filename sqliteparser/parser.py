@@ -1,5 +1,5 @@
 from . import ast
-from .exceptions import SQLiteParserError
+from .exceptions import SQLiteParserError, SQLiteParserImpossibleError
 from .lexer import Lexer, TokenType
 
 
@@ -145,6 +145,8 @@ class Parser:
             constraints.append(self.match_not_null_constraint())
         elif token.type == TokenType.KEYWORD and token.value == "CHECK":
             constraints.append(self.match_check_constraint())
+        elif token.type == TokenType.KEYWORD and token.value == "COLLATE":
+            constraints.append(self.match_collate_constraint())
 
         return ast.Column(
             name=name_token.value, type=type_token.value, constraints=constraints
@@ -197,6 +199,8 @@ class Parser:
                     value = ast.OnDeleteOrUpdate.CASCADE
                 elif token.value == "RESTRICT":
                     value = ast.OnDeleteOrUpdate.RESTRICT
+                else:
+                    raise SQLiteParserImpossibleError(token.value)
 
                 if delete_or_update.value == "DELETE":
                     on_delete = value
@@ -244,22 +248,44 @@ class Parser:
         )
 
     def match_not_null_constraint(self):
+        self.lexer.check(["NOT"])
         self.lexer.advance(expecting=["NULL"])
         self.lexer.advance()
         return ast.NotNullConstraint()
 
     def match_primary_key_constraint(self):
+        self.lexer.check(["PRIMARY"])
         self.lexer.advance(expecting=["KEY"])
         self.lexer.advance()
         return ast.PrimaryKeyConstraint()
 
     def match_check_constraint(self):
+        self.lexer.check(["CHECK"])
         self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
         self.lexer.advance()
         expr = self.match_expression()
         self.lexer.check([TokenType.RIGHT_PARENTHESIS])
         self.lexer.advance()
         return ast.CheckConstraint(expr)
+
+    def match_collate_constraint(self):
+        self.lexer.check(["COLLATE"])
+        sequence_token = self.lexer.advance(
+            expecting=[
+                (TokenType.IDENTIFIER, "BINARY"),
+                (TokenType.IDENTIFIER, "NOCASE"),
+                (TokenType.IDENTIFIER, "RTRIM"),
+            ]
+        )
+        self.lexer.advance()
+        if sequence_token.value == "NOCASE":
+            return ast.CollateConstraint(ast.CollatingSequence.NOCASE)
+        elif sequence_token.value == "RTRIM":
+            return ast.CollateConstraint(ast.CollatingSequence.RTRIM)
+        elif sequence_token.value == "BINARY":
+            return ast.CollateConstraint(ast.CollatingSequence.BINARY)
+        else:
+            raise SQLiteParserImpossibleError(sequence_token.value)
 
     def match_expression(self, precedence=-1):
         left = self.match_prefix()
