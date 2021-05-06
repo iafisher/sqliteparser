@@ -259,8 +259,12 @@ class Parser:
     def match_not_null_constraint(self):
         self.lexer.check(["NOT"])
         self.lexer.advance(expecting=["NULL"])
-        self.lexer.advance()
-        return ast.NotNullConstraint()
+        token = self.lexer.advance()
+        if token.type == TokenType.KEYWORD and token.value == "ON":
+            on_conflict = self.match_on_conflict_clause()
+        else:
+            on_conflict = None
+        return ast.NotNullConstraint(on_conflict=on_conflict)
 
     def match_primary_key_constraint(self):
         self.lexer.check(["PRIMARY"])

@@ -30,7 +30,7 @@ class ParseCreateTests(unittest.TestCase):
         CREATE TABLE people(
           id INTEGER PRIMARY KEY,
           name TEXT NOT NULL,
-          age INTEGER
+          age INTEGER NOT NULL ON CONFLICT ROLLBACK
         );
         """
 
@@ -50,7 +50,15 @@ class ParseCreateTests(unittest.TestCase):
                             type="TEXT",
                             constraints=[ast.NotNullConstraint()],
                         ),
-                        ast.Column(name="age", type="INTEGER"),
+                        ast.Column(
+                            name="age",
+                            type="INTEGER",
+                            constraints=[
+                                ast.NotNullConstraint(
+                                    on_conflict=ast.OnConflict.ROLLBACK
+                                )
+                            ],
+                        ),
                     ],
                 ),
             ],
