@@ -135,7 +135,10 @@ class Parser:
 
     def match_column(self):
         name_token = self.lexer.check([TokenType.IDENTIFIER])
-        type_token = self.lexer.advance(expecting=[TokenType.IDENTIFIER])
+        type_token = self.lexer.advance()
+        if type_token.type != TokenType.IDENTIFIER:
+            return ast.Column(name=name_token.value)
+
         constraints = []
         default = None
 

@@ -25,6 +25,24 @@ class ParseCreateTests(unittest.TestCase):
             ],
         )
 
+    def test_parse_create_table_statement_with_no_type_names(self):
+        sql = """
+        CREATE TABLE people(name, age);
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(name="name", type=None),
+                        ast.Column(name="age", type=None),
+                    ],
+                ),
+            ],
+        )
+
     def test_parse_create_table_statement_with_column_constraints(self):
         sql = """
         CREATE TABLE people(

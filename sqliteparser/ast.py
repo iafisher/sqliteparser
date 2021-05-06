@@ -50,7 +50,7 @@ class SelectStatement:
 @attrs
 class Column:
     name = attrib()
-    type = attrib()
+    type = attrib(default=None)
     default = attrib(default=None)
     constraints = attrib(factory=list)
 
