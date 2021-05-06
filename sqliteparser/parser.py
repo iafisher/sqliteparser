@@ -139,16 +139,19 @@ class Parser:
         constraints = []
 
         token = self.lexer.advance()
-        if token.type == TokenType.KEYWORD and token.value == "PRIMARY":
-            constraints.append(self.match_primary_key_constraint())
-        elif token.type == TokenType.KEYWORD and token.value == "NOT":
-            constraints.append(self.match_not_null_constraint())
-        elif token.type == TokenType.KEYWORD and token.value == "CHECK":
-            constraints.append(self.match_check_constraint())
-        elif token.type == TokenType.KEYWORD and token.value == "COLLATE":
-            constraints.append(self.match_collate_constraint())
-        elif token.type == TokenType.KEYWORD and token.value == "REFERENCES":
-            constraints.append(self.match_foreign_key_clause(columns=[]))
+        if token.type == TokenType.KEYWORD:
+            if token.value == "PRIMARY":
+                constraints.append(self.match_primary_key_constraint())
+            elif token.value == "NOT":
+                constraints.append(self.match_not_null_constraint())
+            elif token.value == "CHECK":
+                constraints.append(self.match_check_constraint())
+            elif token.value == "COLLATE":
+                constraints.append(self.match_collate_constraint())
+            elif token.value == "REFERENCES":
+                constraints.append(self.match_foreign_key_clause(columns=[]))
+            elif token.value == "UNIQUE":
+                constraints.append(self.match_unique_constraint())
 
         return ast.Column(
             name=name_token.value, type=type_token.value, constraints=constraints
@@ -276,22 +279,51 @@ class Parser:
 
     def match_collate_constraint(self):
         self.lexer.check(["COLLATE"])
-        sequence_token = self.lexer.advance(
+        sequence = self.lexer.advance(
             expecting=[
                 (TokenType.IDENTIFIER, "BINARY"),
                 (TokenType.IDENTIFIER, "NOCASE"),
                 (TokenType.IDENTIFIER, "RTRIM"),
             ]
-        )
+        ).value
         self.lexer.advance()
-        if sequence_token.value == "NOCASE":
+        if sequence == "NOCASE":
             return ast.CollateConstraint(ast.CollatingSequence.NOCASE)
-        elif sequence_token.value == "RTRIM":
+        elif sequence == "RTRIM":
             return ast.CollateConstraint(ast.CollatingSequence.RTRIM)
-        elif sequence_token.value == "BINARY":
+        elif sequence == "BINARY":
             return ast.CollateConstraint(ast.CollatingSequence.BINARY)
         else:
-            raise SQLiteParserImpossibleError(sequence_token.value)
+            raise SQLiteParserImpossibleError(sequence)
+
+    def match_unique_constraint(self):
+        self.lexer.check(["UNIQUE"])
+        token = self.lexer.advance()
+        if token.type == TokenType.KEYWORD and token.value == "ON":
+            on_conflict = self.match_on_conflict_clause()
+        else:
+            on_conflict = None
+        return ast.UniqueConstraint(on_conflict=on_conflict)
+
+    def match_on_conflict_clause(self):
+        self.lexer.check(["ON"])
+        self.lexer.advance(expecting=["CONFLICT"])
+        strategy = self.lexer.advance(
+            expecting=["ROLLBACK", "ABORT", "FAIL", "IGNORE", "REPLACE"]
+        ).value
+        self.lexer.advance()
+        if strategy == "ROLLBACK":
+            return ast.OnConflict.ROLLBACK
+        elif strategy == "ABORT":
+            return ast.OnConflict.ABORT
+        elif strategy == "FAIL":
+            return ast.OnConflict.FAIL
+        elif strategy == "IGNORE":
+            return ast.OnConflict.IGNORE
+        elif strategy == "REPLACE":
+            return ast.OnConflict.REPLACE
+        else:
+            raise SQLiteParserImpossibleError(strategy)
 
     def match_expression(self, precedence=-1):
         left = self.match_prefix()

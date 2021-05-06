@@ -381,3 +381,34 @@ class ParseCreateTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_parse_create_table_statement_with_unique_constraint(self):
+        sql = """
+        CREATE TABLE people(
+          name TEXT UNIQUE,
+          age INTEGER UNIQUE ON CONFLICT FAIL
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(
+                            name="name",
+                            type="TEXT",
+                            constraints=[ast.UniqueConstraint(on_conflict=None)],
+                        ),
+                        ast.Column(
+                            name="age",
+                            type="INTEGER",
+                            constraints=[
+                                ast.UniqueConstraint(on_conflict=ast.OnConflict.FAIL)
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )

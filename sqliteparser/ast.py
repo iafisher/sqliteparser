@@ -94,6 +94,11 @@ class ForeignKeyConstraint:
 
 
 @attrs
+class UniqueConstraint:
+    on_conflict = attrib()
+
+
+@attrs
 class Infix:
     operator = attrib()
     left = attrib()
