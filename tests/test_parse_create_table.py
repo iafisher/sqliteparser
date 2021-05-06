@@ -311,6 +311,44 @@ class ParseCreateTests(unittest.TestCase):
             ],
         )
 
+    def test_parse_create_table_with_inline_foreign_key(self):
+        sql = """
+        CREATE TABLE people(
+            job_id INTEGER REFERENCES jobs(id)
+              ON DELETE SET NULL
+              MATCH FULL
+              ON UPDATE CASCADE
+              DEFERRABLE INITIALLY DEFERRED
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(
+                            name="job_id",
+                            type="INTEGER",
+                            constraints=[
+                                ast.ForeignKeyConstraint(
+                                    columns=[],
+                                    foreign_table="jobs",
+                                    foreign_columns=["id"],
+                                    on_delete=ast.OnDeleteOrUpdate.SET_NULL,
+                                    on_update=ast.OnDeleteOrUpdate.CASCADE,
+                                    match=ast.ForeignKeyMatch.FULL,
+                                    deferrable=True,
+                                    initially_deferred=True,
+                                ),
+                            ],
+                        ),
+                    ],
+                )
+            ],
+        )
+
     def test_parse_create_table_statement_with_collating_sequence(self):
         sql = """
         CREATE TABLE people(

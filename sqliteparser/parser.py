@@ -147,6 +147,8 @@ class Parser:
             constraints.append(self.match_check_constraint())
         elif token.type == TokenType.KEYWORD and token.value == "COLLATE":
             constraints.append(self.match_collate_constraint())
+        elif token.type == TokenType.KEYWORD and token.value == "REFERENCES":
+            constraints.append(self.match_foreign_key_clause(columns=[]))
 
         return ast.Column(
             name=name_token.value, type=type_token.value, constraints=constraints
@@ -160,7 +162,11 @@ class Parser:
         self.lexer.advance()
         columns = self.match_identifier_list()
         self.lexer.check([TokenType.RIGHT_PARENTHESIS])
-        self.lexer.advance(expecting=["REFERENCES"])
+        self.lexer.advance()
+        return self.match_foreign_key_clause(columns=columns)
+
+    def match_foreign_key_clause(self, *, columns):
+        self.lexer.check(["REFERENCES"])
 
         foreign_table = self.lexer.advance(expecting=[TokenType.IDENTIFIER]).value
 
