@@ -36,6 +36,12 @@ class GeneratedColumnStorage(enum.Enum):
     STORED = enum.auto()
 
 
+class DefaultValue(enum.Enum):
+    CURRENT_TIME = enum.auto()
+    CURRENT_TIMESTAMP = enum.auto()
+    CURRENT_DATE = enum.auto()
+
+
 @attrs
 class CreateStatement:
     name = attrib()
@@ -129,6 +135,16 @@ class String:
 
 @attrs
 class Integer:
+    value = attrib()
+
+
+@attrs
+class Null:
+    pass
+
+
+@attrs
+class Boolean:
     value = attrib()
 
 

@@ -444,6 +444,8 @@ class ParseCreateTests(unittest.TestCase):
         CREATE TABLE people(
           name TEXT DEFAULT '',
           age INTEGER DEFAULT ( 2 + 2 ),
+          employed BOOLEAN DEFAULT TRUE,
+          last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
 
@@ -458,6 +460,14 @@ class ParseCreateTests(unittest.TestCase):
                             name="age",
                             type="INTEGER",
                             default=ast.Infix("+", ast.Integer(2), ast.Integer(2)),
+                        ),
+                        ast.Column(
+                            name="employed", type="BOOLEAN", default=ast.Boolean(True),
+                        ),
+                        ast.Column(
+                            name="last_updated",
+                            type="TIMESTAMP",
+                            default=ast.DefaultValue.CURRENT_TIMESTAMP,
                         ),
                     ],
                 ),

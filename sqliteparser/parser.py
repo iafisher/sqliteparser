@@ -381,7 +381,16 @@ class Parser:
     def match_default_clause(self):
         self.lexer.check(["DEFAULT"])
         token = self.lexer.advance(
-            expecting=[TokenType.LEFT_PARENTHESIS, TokenType.STRING, TokenType.INTEGER]
+            expecting=[
+                TokenType.LEFT_PARENTHESIS,
+                TokenType.STRING,
+                TokenType.INTEGER,
+                TokenType.IDENTIFIER,
+                "NULL",
+                "CURRENT_TIME",
+                "CURRENT_DATE",
+                "CURRENT_TIMESTAMP",
+            ]
         )
         if token.type == TokenType.LEFT_PARENTHESIS:
             self.lexer.advance()
@@ -395,6 +404,24 @@ class Parser:
         elif token.type == TokenType.INTEGER:
             self.lexer.advance()
             return ast.Integer(int(token.value))
+        elif token.type == TokenType.IDENTIFIER:
+            if token.value.upper() in ("TRUE", "FALSE"):
+                self.lexer.advance()
+                return ast.Boolean(token.value.upper() == "TRUE")
+            else:
+                raise SQLiteParserError
+        elif token.type == TokenType.KEYWORD:
+            self.lexer.advance()
+            if token.value == "NULL":
+                return ast.Null()
+            elif token.value == "CURRENT_TIME":
+                return ast.DefaultValue.CURRENT_TIME
+            elif token.value == "CURRENT_TIMESTAMP":
+                return ast.DefaultValue.CURRENT_TIMESTAMP
+            elif token.value == "CURRENT_DATE":
+                return ast.DefaultValue.CURRENT_DATE
+            else:
+                raise SQLiteParserImpossibleError(token.value)
         else:
             raise SQLiteParserImpossibleError(token.type)
 
