@@ -31,6 +31,11 @@ class CollatingSequence(enum.Enum):
     RTRIM = enum.auto()
 
 
+class GeneratedColumnStorage(enum.Enum):
+    VIRTUAL = enum.auto()
+    STORED = enum.auto()
+
+
 @attrs
 class CreateStatement:
     name = attrib()
@@ -97,6 +102,12 @@ class ForeignKeyConstraint:
 @attrs
 class UniqueConstraint:
     on_conflict = attrib()
+
+
+@attrs
+class GeneratedColumnConstraint:
+    expression = attrib()
+    storage = attrib(default=None)
 
 
 @attrs

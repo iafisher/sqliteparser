@@ -156,6 +156,8 @@ class Parser:
                 constraints.append(self.match_foreign_key_clause(columns=[]))
             elif token.value == "UNIQUE":
                 constraints.append(self.match_unique_constraint())
+            elif token.value == "GENERATED" or token.value == "AS":
+                constraints.append(self.match_generated_column_constraint())
             elif token.value == "DEFAULT":
                 default = self.match_default_clause()
 
@@ -352,6 +354,29 @@ class Parser:
         else:
             on_conflict = None
         return ast.UniqueConstraint(on_conflict=on_conflict)
+
+    def match_generated_column_constraint(self):
+        token = self.lexer.check(["GENERATED", "AS"])
+        if token.value == "GENERATED":
+            self.lexer.advance(expecting=["ALWAYS"])
+            self.lexer.advance(expecting=["AS"])
+
+        self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
+        self.lexer.advance()
+        e = self.match_expression()
+        self.lexer.check([TokenType.RIGHT_PARENTHESIS])
+
+        token = self.lexer.advance()
+        if token.value == "STORED":
+            storage = ast.GeneratedColumnStorage.STORED
+            self.lexer.advance()
+        elif token.value == "VIRTUAL":
+            storage = ast.GeneratedColumnStorage.VIRTUAL
+            self.lexer.advance()
+        else:
+            storage = None
+
+        return ast.GeneratedColumnConstraint(e, storage=storage)
 
     def match_default_clause(self):
         self.lexer.check(["DEFAULT"])

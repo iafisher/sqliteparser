@@ -552,3 +552,31 @@ class ParseCreateTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_parse_create_table_statement_with_generated_column_constraint(self):
+        sql = """
+        CREATE TABLE people(
+          age INTEGER GENERATED ALWAYS AS ( 2 + 2 ) STORED,
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(
+                            name="age",
+                            type="INTEGER",
+                            constraints=[
+                                ast.GeneratedColumnConstraint(
+                                    ast.Infix("+", ast.Integer(2), ast.Integer(2)),
+                                    storage=ast.GeneratedColumnStorage.STORED,
+                                )
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )
