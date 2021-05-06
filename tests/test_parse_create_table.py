@@ -420,3 +420,28 @@ class ParseCreateTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_parse_create_table_statement_with_default_clause(self):
+        sql = """
+        CREATE TABLE people(
+          name TEXT DEFAULT '',
+          age INTEGER DEFAULT ( 2 + 2 ),
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(name="name", type="TEXT", default=ast.String(""),),
+                        ast.Column(
+                            name="age",
+                            type="INTEGER",
+                            default=ast.Infix("+", ast.Integer(2), ast.Integer(2)),
+                        ),
+                    ],
+                ),
+            ],
+        )

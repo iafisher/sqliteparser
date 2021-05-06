@@ -51,6 +51,7 @@ class SelectStatement:
 class Column:
     name = attrib()
     type = attrib()
+    default = attrib(default=None)
     constraints = attrib(factory=list)
 
 

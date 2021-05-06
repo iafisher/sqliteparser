@@ -137,6 +137,7 @@ class Parser:
         name_token = self.lexer.check([TokenType.IDENTIFIER])
         type_token = self.lexer.advance(expecting=[TokenType.IDENTIFIER])
         constraints = []
+        default = None
 
         token = self.lexer.advance()
         if token.type == TokenType.KEYWORD:
@@ -152,9 +153,14 @@ class Parser:
                 constraints.append(self.match_foreign_key_clause(columns=[]))
             elif token.value == "UNIQUE":
                 constraints.append(self.match_unique_constraint())
+            elif token.value == "DEFAULT":
+                default = self.match_default_clause()
 
         return ast.Column(
-            name=name_token.value, type=type_token.value, constraints=constraints
+            name=name_token.value,
+            type=type_token.value,
+            default=default,
+            constraints=constraints,
         )
 
     def match_foreign_key_constraint(self):
@@ -308,6 +314,26 @@ class Parser:
         else:
             on_conflict = None
         return ast.UniqueConstraint(on_conflict=on_conflict)
+
+    def match_default_clause(self):
+        self.lexer.check(["DEFAULT"])
+        token = self.lexer.advance(
+            expecting=[TokenType.LEFT_PARENTHESIS, TokenType.STRING, TokenType.INTEGER]
+        )
+        if token.type == TokenType.LEFT_PARENTHESIS:
+            self.lexer.advance()
+            e = self.match_expression()
+            self.lexer.check([TokenType.RIGHT_PARENTHESIS])
+            self.lexer.advance()
+            return e
+        elif token.type == TokenType.STRING:
+            self.lexer.advance()
+            return ast.String(token.value)
+        elif token.type == TokenType.INTEGER:
+            self.lexer.advance()
+            return ast.Integer(int(token.value))
+        else:
+            raise SQLiteParserImpossibleError(token.type)
 
     def match_on_conflict_clause(self):
         self.lexer.check(["ON"])
