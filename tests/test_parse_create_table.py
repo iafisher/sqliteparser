@@ -463,3 +463,92 @@ class ParseCreateTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_parse_create_table_statement_with_primary_key_constraint(self):
+        sql = """
+        CREATE TABLE people(
+          id1 INTEGER PRIMARY KEY,
+          id2 INTEGER PRIMARY KEY ASC,
+          id3 INTEGER PRIMARY KEY DESC ON CONFLICT IGNORE,
+          id4 INTEGER PRIMARY KEY DESC ON CONFLICT IGNORE AUTOINCREMENT,
+          id5 INTEGER PRIMARY KEY ON CONFLICT IGNORE AUTOINCREMENT,
+          id6 INTEGER PRIMARY KEY AUTOINCREMENT
+        );
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(
+                            name="id1",
+                            type="INTEGER",
+                            constraints=[
+                                ast.PrimaryKeyConstraint(
+                                    ascending=None,
+                                    on_conflict=None,
+                                    autoincrement=False,
+                                )
+                            ],
+                        ),
+                        ast.Column(
+                            name="id2",
+                            type="INTEGER",
+                            constraints=[
+                                ast.PrimaryKeyConstraint(
+                                    ascending=True,
+                                    on_conflict=None,
+                                    autoincrement=False,
+                                )
+                            ],
+                        ),
+                        ast.Column(
+                            name="id3",
+                            type="INTEGER",
+                            constraints=[
+                                ast.PrimaryKeyConstraint(
+                                    ascending=False,
+                                    on_conflict=ast.OnConflict.IGNORE,
+                                    autoincrement=False,
+                                )
+                            ],
+                        ),
+                        ast.Column(
+                            name="id4",
+                            type="INTEGER",
+                            constraints=[
+                                ast.PrimaryKeyConstraint(
+                                    ascending=False,
+                                    on_conflict=ast.OnConflict.IGNORE,
+                                    autoincrement=True,
+                                )
+                            ],
+                        ),
+                        ast.Column(
+                            name="id5",
+                            type="INTEGER",
+                            constraints=[
+                                ast.PrimaryKeyConstraint(
+                                    ascending=None,
+                                    on_conflict=ast.OnConflict.IGNORE,
+                                    autoincrement=True,
+                                )
+                            ],
+                        ),
+                        ast.Column(
+                            name="id6",
+                            type="INTEGER",
+                            constraints=[
+                                ast.PrimaryKeyConstraint(
+                                    ascending=None,
+                                    on_conflict=None,
+                                    autoincrement=True,
+                                )
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )

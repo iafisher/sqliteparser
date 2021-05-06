@@ -278,8 +278,43 @@ class Parser:
     def match_primary_key_constraint(self):
         self.lexer.check(["PRIMARY"])
         self.lexer.advance(expecting=["KEY"])
-        self.lexer.advance()
-        return ast.PrimaryKeyConstraint()
+        token = self.lexer.advance()
+
+        if token.type != TokenType.KEYWORD:
+            return ast.PrimaryKeyConstraint()
+
+        if token.value == "ASC":
+            ascending = True
+            token = self.lexer.advance()
+        elif token.value == "DESC":
+            ascending = False
+            token = self.lexer.advance()
+        else:
+            ascending = None
+
+        if token.type != TokenType.KEYWORD:
+            return ast.PrimaryKeyConstraint(ascending=ascending)
+
+        if token.value == "ON":
+            on_conflict = self.match_on_conflict_clause()
+            token = self.lexer.current()
+        else:
+            on_conflict = None
+
+        if token.type != TokenType.KEYWORD:
+            return ast.PrimaryKeyConstraint(
+                ascending=ascending, on_conflict=on_conflict
+            )
+
+        if token.value == "AUTOINCREMENT":
+            autoincrement = True
+            self.lexer.advance()
+        else:
+            autoincrement = False
+
+        return ast.PrimaryKeyConstraint(
+            ascending=ascending, on_conflict=on_conflict, autoincrement=autoincrement
+        )
 
     def match_check_constraint(self):
         self.lexer.check(["CHECK"])

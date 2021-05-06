@@ -72,7 +72,7 @@ class NotNullConstraint:
 
 @attrs
 class PrimaryKeyConstraint:
-    ascending = attrib(default=True)
+    ascending = attrib(default=None)
     on_conflict = attrib(default=None)
     autoincrement = attrib(default=False)
 
