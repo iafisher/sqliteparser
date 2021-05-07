@@ -111,7 +111,7 @@ class Parser:
             self.lexer.push(token)
             without_rowid = False
 
-        return ast.CreateStatement(
+        return ast.CreateTableStatement(
             name=name,
             columns=columns,
             constraints=constraints,

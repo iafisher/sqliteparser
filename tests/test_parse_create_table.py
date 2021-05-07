@@ -15,7 +15,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(name="name", type="TEXT"),
@@ -33,7 +33,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(name="name", type=None),
@@ -55,7 +55,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(
@@ -92,7 +92,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(
@@ -122,7 +122,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name=ast.TableName("main", "people"),
                     columns=[
                         ast.Column(name="name", type="TEXT"),
@@ -143,7 +143,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(name="name", type="TEXT"),
@@ -165,7 +165,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(name="name", type="TEXT"),
@@ -187,7 +187,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(name="name", type="TEXT"),
@@ -211,7 +211,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[ast.Column(name="job_id", type="INTEGER")],
                     constraints=[
@@ -245,7 +245,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(name="id1", type="INTEGER"),
@@ -305,7 +305,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(name="team_id", type="INTEGER"),
@@ -351,7 +351,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(
@@ -386,7 +386,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(
@@ -419,7 +419,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(
@@ -452,7 +452,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(name="name", type="TEXT", default=ast.String(""),),
@@ -489,7 +489,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(
@@ -573,7 +573,7 @@ class ParseCreateTests(unittest.TestCase):
         self.assertEqual(
             parse(sql),
             [
-                ast.CreateStatement(
+                ast.CreateTableStatement(
                     name="people",
                     columns=[
                         ast.Column(

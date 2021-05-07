@@ -43,7 +43,7 @@ class DefaultValue(enum.Enum):
 
 
 @attrs
-class CreateStatement:
+class CreateTableStatement:
     name = attrib()
     columns = attrib()
     constraints = attrib(factory=list)
