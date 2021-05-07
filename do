@@ -46,22 +46,34 @@ main() {
       exit 1
     fi
 
-    echo "Replacing the version number in setup.py"
+    echo
+    echo
+    echo "=== Replacing the version number in setup.py ==="
     sed -i "s/version=\".*\"/version=\"$version\"/" setup.py
     git add setup.py
     git commit -m "Bump to version $version"
 
-    echo "Tagging the current commit in git"
+    echo
+    echo
+    echo "=== Tagging the current commit in git ==="
     git tag -a "v$version" -m "Version $version"
 
-    echo "Pushing changes to the remote repository"
-    git push --all
+    echo
+    echo
+    echo "=== Pushing changes to the remote repository ==="
+    git push origin master
+    git push --tags
 
     # https://packaging.python.org/tutorials/packaging-projects/
+    echo
+    echo
+    echo "=== Packaging the project ==="
     rm -f dist/*
-    echo "Packaging the project"
     python3 setup.py sdist bdist_wheel
-    echo "Uploading to PyPI"
+
+    echo
+    echo
+    echo "=== Uploading to PyPI ==="
     twine upload dist/*
   else
     usage
