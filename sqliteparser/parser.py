@@ -143,23 +143,28 @@ class Parser:
         default = None
 
         token = self.lexer.advance()
-        if token.type == TokenType.KEYWORD:
-            if token.value == "PRIMARY":
-                constraints.append(self.match_primary_key_constraint())
-            elif token.value == "NOT":
-                constraints.append(self.match_not_null_constraint())
-            elif token.value == "CHECK":
-                constraints.append(self.match_check_constraint())
-            elif token.value == "COLLATE":
-                constraints.append(self.match_collate_constraint())
-            elif token.value == "REFERENCES":
-                constraints.append(self.match_foreign_key_clause(columns=[]))
-            elif token.value == "UNIQUE":
-                constraints.append(self.match_unique_constraint())
-            elif token.value == "GENERATED" or token.value == "AS":
-                constraints.append(self.match_generated_column_constraint())
-            elif token.value == "DEFAULT":
-                default = self.match_default_clause()
+        while True:
+            if token.type == TokenType.KEYWORD:
+                if token.value == "PRIMARY":
+                    constraints.append(self.match_primary_key_constraint())
+                elif token.value == "NOT":
+                    constraints.append(self.match_not_null_constraint())
+                elif token.value == "CHECK":
+                    constraints.append(self.match_check_constraint())
+                elif token.value == "COLLATE":
+                    constraints.append(self.match_collate_constraint())
+                elif token.value == "REFERENCES":
+                    constraints.append(self.match_foreign_key_clause(columns=[]))
+                elif token.value == "UNIQUE":
+                    constraints.append(self.match_unique_constraint())
+                elif token.value == "GENERATED" or token.value == "AS":
+                    constraints.append(self.match_generated_column_constraint())
+                elif token.value == "DEFAULT":
+                    default = self.match_default_clause()
+            else:
+                break
+
+            token = self.lexer.current()
 
         return ast.Column(
             name=name_token.value,

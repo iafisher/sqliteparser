@@ -46,7 +46,7 @@ class ParseCreateTests(unittest.TestCase):
     def test_parse_create_table_statement_with_column_constraints(self):
         sql = """
         CREATE TABLE people(
-          id INTEGER PRIMARY KEY,
+          id INTEGER PRIMARY KEY NOT NULL,
           name TEXT NOT NULL,
           age INTEGER NOT NULL ON CONFLICT ROLLBACK
         );
@@ -61,7 +61,10 @@ class ParseCreateTests(unittest.TestCase):
                         ast.Column(
                             name="id",
                             type="INTEGER",
-                            constraints=[ast.PrimaryKeyConstraint()],
+                            constraints=[
+                                ast.PrimaryKeyConstraint(),
+                                ast.NotNullConstraint(),
+                            ],
                         ),
                         ast.Column(
                             name="name",
