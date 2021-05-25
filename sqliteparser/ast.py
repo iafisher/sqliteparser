@@ -268,7 +268,7 @@ class Identifier:
     value = attrib()
 
     def __str__(self):
-        return f"`{self.value}`"
+        return f'"{self.value}"'
 
 
 @attrs

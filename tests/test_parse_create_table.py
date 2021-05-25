@@ -593,3 +593,21 @@ class ParseCreateTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_parse_create_table_statement_with_quoted_names(self):
+        sql = """
+        CREATE TABLE "people"("name", "age");
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateTableStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(name="name", type=None),
+                        ast.Column(name="age", type=None),
+                    ],
+                ),
+            ],
+        )

@@ -113,6 +113,8 @@ class Lexer:
             return self.read_integer()
         elif c == "'":
             return self.read_string()
+        elif c == '"':
+            return self.read_quoted_symbol()
         elif c == "(":
             return self.character_token(TokenType.LEFT_PARENTHESIS)
         elif c == ")":
@@ -211,15 +213,21 @@ class Lexer:
         )
 
     def read_string(self):
+        return self.read_generic_string(TokenType.STRING, "'")
+
+    def read_quoted_symbol(self):
+        return self.read_generic_string(TokenType.IDENTIFIER, '"')
+
+    def read_generic_string(self, token_type, delimiter):
         start_column = self.column
         characters = []
 
         self.next_character()
         while not self.done():
-            if self.c() == "'":
-                # SQL escapes single quotes by doubling them.
-                if self.prefix(2) == "''":
-                    characters.append("'")
+            if self.c() == delimiter:
+                # SQL escapes quotes by doubling them.
+                if self.prefix(2) == delimiter * 2:
+                    characters.append(delimiter)
                     self.next_character()
                     self.next_character()
                 else:
@@ -229,12 +237,12 @@ class Lexer:
                 self.next_character()
 
         if self.done():
-            raise SQLiteParserError("unterminated string literal")
+            raise SQLiteParserError(f"expected delimiter: {delimiter}")
         else:
             self.next_character()
 
         return Token(
-            type=TokenType.STRING,
+            type=token_type,
             value="".join(characters),
             line=self.line,
             column=start_column,
