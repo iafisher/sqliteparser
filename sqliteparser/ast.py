@@ -2,6 +2,8 @@ import enum
 
 from attr import attrib, attrs
 
+from .utils import quote
+
 
 class StringEnum(enum.Enum):
     def __str__(self):
@@ -67,7 +69,7 @@ class CreateTableStatement:
         builder.append("TABLE ")
         if self.if_not_exists:
             builder.append("IF NOT EXISTS ")
-        builder.append("`" + self.name + "`")
+        builder.append(quote(self.name))
         if self.as_select:
             builder.append(" AS ")
             builder.append(str(self.as_select))
@@ -109,7 +111,7 @@ class Column:
     constraints = attrib(factory=list)
 
     def __str__(self):
-        builder = [self.name]
+        builder = [quote(self.name)]
         if self.type is not None:
             builder.append(" ")
             builder.append(str(self.type))
@@ -139,7 +141,7 @@ class NamedConstraint:
     constraint = attrib()
 
     def __str__(self):
-        return f"CONSTRAINT {self.name} {self.constraint}"
+        return f"CONSTRAINT {quote(self.name)} {self.constraint}"
 
 
 @attrs
@@ -268,7 +270,7 @@ class Identifier:
     value = attrib()
 
     def __str__(self):
-        return f'"{self.value}"'
+        return quote(self.value)
 
 
 @attrs
@@ -316,4 +318,4 @@ class TableName:
     table_name = attrib()
 
     def __str__(self):
-        return f"{self.schema_name}.{self.table_name}"
+        return f"{quote(self.schema_name)}.{quote(self.table_name)}"
