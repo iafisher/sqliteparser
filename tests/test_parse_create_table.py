@@ -596,7 +596,7 @@ class ParseCreateTests(unittest.TestCase):
 
     def test_parse_create_table_statement_with_quoted_names(self):
         sql = """
-        CREATE TABLE "people"("name", "age");
+        CREATE TABLE "people"([name], `age`);
         """
 
         self.assertEqual(

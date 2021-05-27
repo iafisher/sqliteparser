@@ -63,7 +63,7 @@ class Lexer:
 
         token = self.current()
         if token.type == TokenType.UNKNOWN:
-            raise SQLiteParserError("unknown token")
+            raise SQLiteParserError(f"unknown token: {token.value!r}")
 
         for type_or_value in types_and_values:
             if isinstance(type_or_value, str):
@@ -112,9 +112,15 @@ class Lexer:
         elif c.isdigit():
             return self.read_integer()
         elif c == "'":
-            return self.read_string()
+            return self.read_generic_string(TokenType.STRING, "'")
         elif c == '"':
-            return self.read_quoted_symbol()
+            return self.read_generic_string(TokenType.IDENTIFIER, '"')
+        elif c == "`":
+            return self.read_generic_string(TokenType.IDENTIFIER, "`")
+        elif c == "[":
+            return self.read_generic_string(
+                TokenType.IDENTIFIER, "]", allow_doubling=False
+            )
         elif c == "(":
             return self.character_token(TokenType.LEFT_PARENTHESIS)
         elif c == ")":
@@ -212,13 +218,7 @@ class Lexer:
             column=start_column,
         )
 
-    def read_string(self):
-        return self.read_generic_string(TokenType.STRING, "'")
-
-    def read_quoted_symbol(self):
-        return self.read_generic_string(TokenType.IDENTIFIER, '"')
-
-    def read_generic_string(self, token_type, delimiter):
+    def read_generic_string(self, token_type, delimiter, *, allow_doubling=True):
         start_column = self.column
         characters = []
 
@@ -226,7 +226,7 @@ class Lexer:
         while not self.done():
             if self.c() == delimiter:
                 # SQL escapes quotes by doubling them.
-                if self.prefix(2) == delimiter * 2:
+                if allow_doubling and self.prefix(2) == delimiter * 2:
                     characters.append(delimiter)
                     self.next_character()
                     self.next_character()
