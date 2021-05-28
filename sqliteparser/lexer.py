@@ -23,6 +23,10 @@ class TokenType(enum.Enum):
     SEMICOLON = enum.auto()
     DOT = enum.auto()
     NOT_EQ = enum.auto()
+    GREATER_THAN = enum.auto()
+    LESS_THAN = enum.auto()
+    GREATER_THAN_OR_EQ = enum.auto()
+    LESS_THAN_OR_EQ = enum.auto()
     STRING = enum.auto()
     BLOB = enum.auto()
     INTEGER = enum.auto()
@@ -133,6 +137,14 @@ class Lexer:
             return self.character_token(TokenType.DOT)
         elif self.prefix(2) == "!=":
             return self.multi_character_token(TokenType.NOT_EQ, 2)
+        elif self.prefix(2) == ">=":
+            return self.multi_character_token(TokenType.GREATER_THAN_OR_EQ, 2)
+        elif self.prefix(2) == "<=":
+            return self.multi_character_token(TokenType.LESS_THAN_OR_EQ, 2)
+        elif c == ">":
+            return self.character_token(TokenType.GREATER_THAN)
+        elif c == "<":
+            return self.character_token(TokenType.GREATER_THAN)
         else:
             return self.character_token(TokenType.UNKNOWN)
 
@@ -261,6 +273,9 @@ class Lexer:
         return self.prefix(1)
 
     def peek(self, n=1):
+        if self.index + n >= len(self.program):
+            return None
+
         return self.program[self.index + n]
 
     def prefix(self, length):

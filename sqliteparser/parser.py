@@ -497,7 +497,7 @@ class Parser:
             self.lexer.advance()
             return ast.Integer(int(token.value))
         else:
-            raise SQLiteParserError(token.type)
+            raise SQLiteParserError(token.type, token.value)
 
     def match_identifier_list(self):
         identifiers = []

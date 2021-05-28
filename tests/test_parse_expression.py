@@ -38,5 +38,21 @@ class ParseExpressionTests(unittest.TestCase):
 
     def test_parse_blob_literal(self):
         self.assertEqual(
-            parse(r"SELECT X'41'"), [ast.SelectStatement(columns=[ast.Blob(b"A")])],
+            parse("SELECT X'41'"), [ast.SelectStatement(columns=[ast.Blob(b"A")])],
+        )
+
+    def test_parse_comparisons(self):
+        self.assertEqual(
+            parse("SELECT 0 < x OR 20 >= x"),
+            [
+                ast.SelectStatement(
+                    columns=[
+                        ast.Infix(
+                            "OR",
+                            ast.Infix("<", ast.Integer(0), ast.Identifier("x")),
+                            ast.Infix(">=", ast.Integer(20), ast.Identifier("x")),
+                        )
+                    ]
+                )
+            ],
         )
