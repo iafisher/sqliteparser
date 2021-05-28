@@ -9,7 +9,7 @@ with open(os.path.join(dpath, "README.md"), "r") as f:
 
 setup(
     name="sqliteparser",
-    version="0.2.4",
+    version="0.2.5",
     description="A parser for SQLite's dialect of SQL",
     long_description=long_description,
     long_description_content_type="text/markdown",
