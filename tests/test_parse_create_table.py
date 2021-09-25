@@ -18,8 +18,37 @@ class ParseCreateTests(unittest.TestCase):
                 ast.CreateTableStatement(
                     name="people",
                     columns=[
-                        ast.Column(name="name", type="TEXT"),
-                        ast.Column(name="age", type="INTEGER"),
+                        ast.Column(
+                            name="name", definition=ast.ColumnDefinition(type="TEXT")
+                        ),
+                        ast.Column(
+                            name="age", definition=ast.ColumnDefinition(type="INTEGER")
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+    def test_parse_simple_create_table_statement_with_no_semicolon(self):
+        sql = """
+        CREATE TABLE people(
+          name TEXT,
+          age INTEGER
+        )
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateTableStatement(
+                    name="people",
+                    columns=[
+                        ast.Column(
+                            name="name", definition=ast.ColumnDefinition(type="TEXT")
+                        ),
+                        ast.Column(
+                            name="age", definition=ast.ColumnDefinition(type="INTEGER")
+                        ),
                     ],
                 ),
             ],
@@ -36,8 +65,8 @@ class ParseCreateTests(unittest.TestCase):
                 ast.CreateTableStatement(
                     name="people",
                     columns=[
-                        ast.Column(name="name", type=None),
-                        ast.Column(name="age", type=None),
+                        ast.Column(name="name", definition=None),
+                        ast.Column(name="age", definition=None),
                     ],
                 ),
             ],
@@ -60,25 +89,31 @@ class ParseCreateTests(unittest.TestCase):
                     columns=[
                         ast.Column(
                             name="id",
-                            type="INTEGER",
-                            constraints=[
-                                ast.PrimaryKeyConstraint(),
-                                ast.NotNullConstraint(),
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.PrimaryKeyConstraint(),
+                                    ast.NotNullConstraint(),
+                                ],
+                            ),
                         ),
                         ast.Column(
                             name="name",
-                            type="TEXT",
-                            constraints=[ast.NotNullConstraint()],
+                            definition=ast.ColumnDefinition(
+                                type="TEXT",
+                                constraints=[ast.NotNullConstraint()],
+                            ),
                         ),
                         ast.Column(
                             name="age",
-                            type="INTEGER",
-                            constraints=[
-                                ast.NotNullConstraint(
-                                    on_conflict=ast.OnConflict.ROLLBACK
-                                )
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.NotNullConstraint(
+                                        on_conflict=ast.OnConflict.ROLLBACK
+                                    )
+                                ],
+                            ),
                         ),
                     ],
                 ),
@@ -100,14 +135,18 @@ class ParseCreateTests(unittest.TestCase):
                     columns=[
                         ast.Column(
                             name="name",
-                            type="TEXT",
-                            constraints=[
-                                ast.CheckConstraint(
-                                    ast.Infix(
-                                        "!=", ast.Identifier("name"), ast.String(""),
+                            definition=ast.ColumnDefinition(
+                                type="TEXT",
+                                constraints=[
+                                    ast.CheckConstraint(
+                                        ast.Infix(
+                                            "!=",
+                                            ast.Identifier("name"),
+                                            ast.String(""),
+                                        )
                                     )
-                                )
-                            ],
+                                ],
+                            ),
                         ),
                     ],
                 ),
@@ -128,8 +167,12 @@ class ParseCreateTests(unittest.TestCase):
                 ast.CreateTableStatement(
                     name=ast.TableName("main", "people"),
                     columns=[
-                        ast.Column(name="name", type="TEXT"),
-                        ast.Column(name="age", type="INTEGER"),
+                        ast.Column(
+                            name="name", definition=ast.ColumnDefinition(type="TEXT")
+                        ),
+                        ast.Column(
+                            name="age", definition=ast.ColumnDefinition(type="INTEGER")
+                        ),
                     ],
                 ),
             ],
@@ -149,8 +192,12 @@ class ParseCreateTests(unittest.TestCase):
                 ast.CreateTableStatement(
                     name="people",
                     columns=[
-                        ast.Column(name="name", type="TEXT"),
-                        ast.Column(name="age", type="INTEGER"),
+                        ast.Column(
+                            name="name", definition=ast.ColumnDefinition(type="TEXT")
+                        ),
+                        ast.Column(
+                            name="age", definition=ast.ColumnDefinition(type="INTEGER")
+                        ),
                     ],
                     temporary=True,
                 ),
@@ -171,8 +218,12 @@ class ParseCreateTests(unittest.TestCase):
                 ast.CreateTableStatement(
                     name="people",
                     columns=[
-                        ast.Column(name="name", type="TEXT"),
-                        ast.Column(name="age", type="INTEGER"),
+                        ast.Column(
+                            name="name", definition=ast.ColumnDefinition(type="TEXT")
+                        ),
+                        ast.Column(
+                            name="age", definition=ast.ColumnDefinition(type="INTEGER")
+                        ),
                     ],
                     without_rowid=True,
                 ),
@@ -193,8 +244,12 @@ class ParseCreateTests(unittest.TestCase):
                 ast.CreateTableStatement(
                     name="people",
                     columns=[
-                        ast.Column(name="name", type="TEXT"),
-                        ast.Column(name="age", type="INTEGER"),
+                        ast.Column(
+                            name="name", definition=ast.ColumnDefinition(type="TEXT")
+                        ),
+                        ast.Column(
+                            name="age", definition=ast.ColumnDefinition(type="INTEGER")
+                        ),
                     ],
                     if_not_exists=True,
                 ),
@@ -216,13 +271,18 @@ class ParseCreateTests(unittest.TestCase):
             [
                 ast.CreateTableStatement(
                     name="people",
-                    columns=[ast.Column(name="job_id", type="INTEGER")],
+                    columns=[
+                        ast.Column(
+                            name="job_id",
+                            definition=ast.ColumnDefinition(type="INTEGER"),
+                        )
+                    ],
                     constraints=[
                         ast.ForeignKeyConstraint(
                             columns=["job_id"],
                             foreign_table="jobs",
                             foreign_columns=[],
-                            on_delete=ast.OnDeleteOrUpdate.NO_ACTION,
+                            on_delete=ast.OnDelete.NO_ACTION,
                             on_update=None,
                             match=None,
                             deferrable=None,
@@ -251,9 +311,15 @@ class ParseCreateTests(unittest.TestCase):
                 ast.CreateTableStatement(
                     name="people",
                     columns=[
-                        ast.Column(name="id1", type="INTEGER"),
-                        ast.Column(name="id2", type="INTEGER"),
-                        ast.Column(name="id3", type="INTEGER"),
+                        ast.Column(
+                            name="id1", definition=ast.ColumnDefinition(type="INTEGER")
+                        ),
+                        ast.Column(
+                            name="id2", definition=ast.ColumnDefinition(type="INTEGER")
+                        ),
+                        ast.Column(
+                            name="id3", definition=ast.ColumnDefinition(type="INTEGER")
+                        ),
                     ],
                     constraints=[
                         ast.ForeignKeyConstraint(
@@ -311,8 +377,14 @@ class ParseCreateTests(unittest.TestCase):
                 ast.CreateTableStatement(
                     name="people",
                     columns=[
-                        ast.Column(name="team_id", type="INTEGER"),
-                        ast.Column(name="job_id", type="INTEGER"),
+                        ast.Column(
+                            name="team_id",
+                            definition=ast.ColumnDefinition(type="INTEGER"),
+                        ),
+                        ast.Column(
+                            name="job_id",
+                            definition=ast.ColumnDefinition(type="INTEGER"),
+                        ),
                     ],
                     constraints=[
                         ast.ForeignKeyConstraint(
@@ -329,8 +401,8 @@ class ParseCreateTests(unittest.TestCase):
                             columns=["job_id"],
                             foreign_table="jobs",
                             foreign_columns=["id"],
-                            on_delete=ast.OnDeleteOrUpdate.SET_NULL,
-                            on_update=ast.OnDeleteOrUpdate.CASCADE,
+                            on_delete=ast.OnDelete.SET_NULL,
+                            on_update=ast.OnUpdate.CASCADE,
                             match=ast.ForeignKeyMatch.FULL,
                             deferrable=True,
                             initially_deferred=True,
@@ -359,19 +431,21 @@ class ParseCreateTests(unittest.TestCase):
                     columns=[
                         ast.Column(
                             name="job_id",
-                            type="INTEGER",
-                            constraints=[
-                                ast.ForeignKeyConstraint(
-                                    columns=[],
-                                    foreign_table="jobs",
-                                    foreign_columns=["id"],
-                                    on_delete=ast.OnDeleteOrUpdate.SET_NULL,
-                                    on_update=ast.OnDeleteOrUpdate.CASCADE,
-                                    match=ast.ForeignKeyMatch.FULL,
-                                    deferrable=True,
-                                    initially_deferred=True,
-                                ),
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.ForeignKeyConstraint(
+                                        columns=[],
+                                        foreign_table="jobs",
+                                        foreign_columns=["id"],
+                                        on_delete=ast.OnDelete.SET_NULL,
+                                        on_update=ast.OnUpdate.CASCADE,
+                                        match=ast.ForeignKeyMatch.FULL,
+                                        deferrable=True,
+                                        initially_deferred=True,
+                                    ),
+                                ],
+                            ),
                         ),
                     ],
                 )
@@ -394,17 +468,21 @@ class ParseCreateTests(unittest.TestCase):
                     columns=[
                         ast.Column(
                             name="name",
-                            type="TEXT",
-                            constraints=[
-                                ast.CollateConstraint(ast.CollatingSequence.NOCASE)
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="TEXT",
+                                constraints=[
+                                    ast.CollateConstraint(ast.CollatingSequence.NOCASE)
+                                ],
+                            ),
                         ),
                         ast.Column(
                             name="age",
-                            type="INTEGER",
-                            constraints=[
-                                ast.CollateConstraint(ast.CollatingSequence.BINARY)
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.CollateConstraint(ast.CollatingSequence.BINARY)
+                                ],
+                            ),
                         ),
                     ],
                 ),
@@ -427,15 +505,21 @@ class ParseCreateTests(unittest.TestCase):
                     columns=[
                         ast.Column(
                             name="name",
-                            type="TEXT",
-                            constraints=[ast.UniqueConstraint(on_conflict=None)],
+                            definition=ast.ColumnDefinition(
+                                type="TEXT",
+                                constraints=[ast.UniqueConstraint(on_conflict=None)],
+                            ),
                         ),
                         ast.Column(
                             name="age",
-                            type="INTEGER",
-                            constraints=[
-                                ast.UniqueConstraint(on_conflict=ast.OnConflict.FAIL)
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.UniqueConstraint(
+                                        on_conflict=ast.OnConflict.FAIL
+                                    )
+                                ],
+                            ),
                         ),
                     ],
                 ),
@@ -458,19 +542,31 @@ class ParseCreateTests(unittest.TestCase):
                 ast.CreateTableStatement(
                     name="people",
                     columns=[
-                        ast.Column(name="name", type="TEXT", default=ast.String(""),),
                         ast.Column(
-                            name="age",
-                            type="INTEGER",
-                            default=ast.Infix("+", ast.Integer(2), ast.Integer(2)),
+                            name="name",
+                            definition=ast.ColumnDefinition(
+                                type="TEXT", default=ast.String("")
+                            ),
                         ),
                         ast.Column(
-                            name="employed", type="BOOLEAN", default=ast.Boolean(True),
+                            name="age",
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                default=ast.Infix("+", ast.Integer(2), ast.Integer(2)),
+                            ),
+                        ),
+                        ast.Column(
+                            name="employed",
+                            definition=ast.ColumnDefinition(
+                                type="BOOLEAN", default=ast.Boolean(True)
+                            ),
                         ),
                         ast.Column(
                             name="last_updated",
-                            type="TIMESTAMP",
-                            default=ast.DefaultValue.CURRENT_TIMESTAMP,
+                            definition=ast.ColumnDefinition(
+                                type="TIMESTAMP",
+                                default=ast.DefaultValue.CURRENT_TIMESTAMP,
+                            ),
                         ),
                     ],
                 ),
@@ -497,69 +593,81 @@ class ParseCreateTests(unittest.TestCase):
                     columns=[
                         ast.Column(
                             name="id1",
-                            type="INTEGER",
-                            constraints=[
-                                ast.PrimaryKeyConstraint(
-                                    ascending=None,
-                                    on_conflict=None,
-                                    autoincrement=False,
-                                )
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.PrimaryKeyConstraint(
+                                        ascending=None,
+                                        on_conflict=None,
+                                        autoincrement=False,
+                                    )
+                                ],
+                            ),
                         ),
                         ast.Column(
                             name="id2",
-                            type="INTEGER",
-                            constraints=[
-                                ast.PrimaryKeyConstraint(
-                                    ascending=True,
-                                    on_conflict=None,
-                                    autoincrement=False,
-                                )
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.PrimaryKeyConstraint(
+                                        ascending=True,
+                                        on_conflict=None,
+                                        autoincrement=False,
+                                    )
+                                ],
+                            ),
                         ),
                         ast.Column(
                             name="id3",
-                            type="INTEGER",
-                            constraints=[
-                                ast.PrimaryKeyConstraint(
-                                    ascending=False,
-                                    on_conflict=ast.OnConflict.IGNORE,
-                                    autoincrement=False,
-                                )
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.PrimaryKeyConstraint(
+                                        ascending=False,
+                                        on_conflict=ast.OnConflict.IGNORE,
+                                        autoincrement=False,
+                                    )
+                                ],
+                            ),
                         ),
                         ast.Column(
                             name="id4",
-                            type="INTEGER",
-                            constraints=[
-                                ast.PrimaryKeyConstraint(
-                                    ascending=False,
-                                    on_conflict=ast.OnConflict.IGNORE,
-                                    autoincrement=True,
-                                )
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.PrimaryKeyConstraint(
+                                        ascending=False,
+                                        on_conflict=ast.OnConflict.IGNORE,
+                                        autoincrement=True,
+                                    )
+                                ],
+                            ),
                         ),
                         ast.Column(
                             name="id5",
-                            type="INTEGER",
-                            constraints=[
-                                ast.PrimaryKeyConstraint(
-                                    ascending=None,
-                                    on_conflict=ast.OnConflict.IGNORE,
-                                    autoincrement=True,
-                                )
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.PrimaryKeyConstraint(
+                                        ascending=None,
+                                        on_conflict=ast.OnConflict.IGNORE,
+                                        autoincrement=True,
+                                    )
+                                ],
+                            ),
                         ),
                         ast.Column(
                             name="id6",
-                            type="INTEGER",
-                            constraints=[
-                                ast.PrimaryKeyConstraint(
-                                    ascending=None,
-                                    on_conflict=None,
-                                    autoincrement=True,
-                                )
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.PrimaryKeyConstraint(
+                                        ascending=None,
+                                        on_conflict=None,
+                                        autoincrement=True,
+                                    )
+                                ],
+                            ),
                         ),
                     ],
                 ),
@@ -581,13 +689,15 @@ class ParseCreateTests(unittest.TestCase):
                     columns=[
                         ast.Column(
                             name="age",
-                            type="INTEGER",
-                            constraints=[
-                                ast.GeneratedColumnConstraint(
-                                    ast.Infix("+", ast.Integer(2), ast.Integer(2)),
-                                    storage=ast.GeneratedColumnStorage.STORED,
-                                )
-                            ],
+                            definition=ast.ColumnDefinition(
+                                type="INTEGER",
+                                constraints=[
+                                    ast.GeneratedColumnConstraint(
+                                        ast.Infix("+", ast.Integer(2), ast.Integer(2)),
+                                        storage=ast.GeneratedColumnStorage.STORED,
+                                    )
+                                ],
+                            ),
                         ),
                     ],
                 ),
@@ -605,8 +715,8 @@ class ParseCreateTests(unittest.TestCase):
                 ast.CreateTableStatement(
                     name="people",
                     columns=[
-                        ast.Column(name="name", type=None),
-                        ast.Column(name="age", type=None),
+                        ast.Column(name="name", definition=None),
+                        ast.Column(name="age", definition=None),
                     ],
                 ),
             ],

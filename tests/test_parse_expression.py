@@ -27,7 +27,8 @@ class ParseExpressionTests(unittest.TestCase):
 
     def test_parse_string_literal(self):
         self.assertEqual(
-            parse(r"SELECT 'abc'"), [ast.SelectStatement(columns=[ast.String("abc")])],
+            parse(r"SELECT 'abc'"),
+            [ast.SelectStatement(columns=[ast.String("abc")])],
         )
 
     def test_parse_string_literal_with_backslashes_and_single_quotes(self):
@@ -38,7 +39,8 @@ class ParseExpressionTests(unittest.TestCase):
 
     def test_parse_blob_literal(self):
         self.assertEqual(
-            parse("SELECT X'41'"), [ast.SelectStatement(columns=[ast.Blob(b"A")])],
+            parse("SELECT X'41'"),
+            [ast.SelectStatement(columns=[ast.Blob(b"A")])],
         )
 
     def test_parse_comparisons(self):
@@ -51,6 +53,40 @@ class ParseExpressionTests(unittest.TestCase):
                             "OR",
                             ast.Infix("<", ast.Integer(0), ast.Identifier("x")),
                             ast.Infix(">=", ast.Integer(20), ast.Identifier("x")),
+                        )
+                    ]
+                )
+            ],
+        )
+
+    def test_parse_AND(self):
+        self.assertEqual(
+            parse('SELECT ("size" >= 1) AND ("size" <= 4)'),
+            [
+                ast.SelectStatement(
+                    columns=[
+                        ast.Infix(
+                            "AND",
+                            ast.Infix(">=", ast.Identifier("size"), ast.Integer(1)),
+                            ast.Infix("<=", ast.Identifier("size"), ast.Integer(4)),
+                        )
+                    ]
+                )
+            ],
+        )
+
+    def test_parse_expression_list(self):
+        self.assertEqual(
+            parse("SELECT 1 IN (1, 2, 3)"),
+            [
+                ast.SelectStatement(
+                    columns=[
+                        ast.Infix(
+                            "IN",
+                            ast.Integer(1),
+                            ast.ExpressionList(
+                                [ast.Integer(1), ast.Integer(2), ast.Integer(3)]
+                            ),
                         )
                     ]
                 )

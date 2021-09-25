@@ -62,10 +62,10 @@ class Lexer:
           - A (TokenType, string) pair, which matches a token with that type and that
               value.
         """
-        if self.done():
+        token = self.current()
+        if token is None:
             raise SQLiteParserError("premature end of input")
 
-        token = self.current()
         if token.type == TokenType.UNKNOWN:
             raise SQLiteParserError(f"unknown token: {token.value!r}")
 

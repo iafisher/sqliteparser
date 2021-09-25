@@ -3,13 +3,36 @@ from .exceptions import SQLiteParserError, SQLiteParserImpossibleError
 from .lexer import Lexer, TokenType
 
 
-def parse(program):
+def parse(program, *, debug=False):
     """
     Parse the SQL program into a list of AST objects.
     """
     lexer = Lexer(program)
-    parser = Parser(lexer)
+    parser = Parser(lexer, debug=debug)
     return parser.parse()
+
+
+def debuggable(f):
+    def wrapped(self, *args, **kwargs):
+        name = f.__name__
+        if self.debug:
+            indent = "  " * (self.debug_indent * 2)
+            self.debug_indent += 1
+            print(indent + f"{name} (token = {self.lexer.current().value!r})")
+
+        r = f(self, *args, **kwargs)
+
+        if self.debug:
+            print(
+                indent
+                + f"{name} returned (token = {self.lexer.current().value!r}, "
+                + f"value = {r!r})"
+            )
+            self.debug_indent -= 1
+
+        return r
+
+    return wrapped
 
 
 class Parser:
@@ -26,8 +49,10 @@ class Parser:
       - It leaves the lexer positioned at one past the last token of the fragment.
     """
 
-    def __init__(self, lexer):
+    def __init__(self, lexer, *, debug=False):
         self.lexer = lexer
+        self.debug = debug
+        self.debug_indent = 0
 
     def parse(self):
         statements = []
@@ -43,6 +68,7 @@ class Parser:
 
         return statements
 
+    @debuggable
     def match_statement(self):
         token = self.lexer.current()
         if token.type == TokenType.KEYWORD:
@@ -55,6 +81,7 @@ class Parser:
         else:
             raise SQLiteParserError(f"unexpected token type: {token.type}")
 
+    @debuggable
     def match_create_statement(self):
         token = self.lexer.advance(expecting=["TABLE", "TEMPORARY", "TEMP"])
         if token.value in ("TEMPORARY", "TEMP"):
@@ -104,11 +131,14 @@ class Parser:
                 break
 
         token = self.lexer.advance()
-        if token.type == TokenType.KEYWORD and token.value == "WITHOUT":
-            self.lexer.advance(expecting=[(TokenType.IDENTIFIER, "ROWID")])
-            without_rowid = True
+        if token is not None:
+            if token.type == TokenType.KEYWORD and token.value == "WITHOUT":
+                self.lexer.advance(expecting=[(TokenType.IDENTIFIER, "ROWID")])
+                without_rowid = True
+            else:
+                self.lexer.push(token)
+                without_rowid = False
         else:
-            self.lexer.push(token)
             without_rowid = False
 
         return ast.CreateTableStatement(
@@ -121,11 +151,13 @@ class Parser:
             if_not_exists=if_not_exists,
         )
 
+    @debuggable
     def match_select_statement(self):
         self.lexer.advance()
         e = self.match_expression()
         return ast.SelectStatement(columns=[e])
 
+    @debuggable
     def match_column_or_constraint(self):
         token = self.lexer.current()
         if token.type == TokenType.KEYWORD and token.value == "FOREIGN":
@@ -133,11 +165,12 @@ class Parser:
         elif token.type == TokenType.IDENTIFIER:
             return self.match_column()
 
+    @debuggable
     def match_column(self):
         name_token = self.lexer.check([TokenType.IDENTIFIER])
         type_token = self.lexer.advance()
         if type_token.type != TokenType.IDENTIFIER:
-            return ast.Column(name=name_token.value)
+            return ast.Column(name=name_token.value, definition=None)
 
         constraints = []
         default = None
@@ -168,11 +201,14 @@ class Parser:
 
         return ast.Column(
             name=name_token.value,
-            type=type_token.value,
-            default=default,
-            constraints=constraints,
+            definition=ast.ColumnDefinition(
+                type=type_token.value,
+                default=default,
+                constraints=constraints,
+            ),
         )
 
+    @debuggable
     def match_foreign_key_constraint(self):
         self.lexer.check(["FOREIGN"])
         self.lexer.advance(expecting=["KEY"])
@@ -184,6 +220,7 @@ class Parser:
         self.lexer.advance()
         return self.match_foreign_key_clause(columns=columns)
 
+    @debuggable
     def match_foreign_key_clause(self, *, columns):
         self.lexer.check(["REFERENCES"])
 
@@ -213,17 +250,17 @@ class Parser:
                 if token.value == "SET":
                     token = self.lexer.advance(expecting=["NULL", "DEFAULT"])
                     value = (
-                        ast.OnDeleteOrUpdate.SET_NULL
+                        ast.OnDelete.SET_NULL
                         if token.value == "NULL"
-                        else ast.OnDeleteOrUpdate.SET_DEFAULT
+                        else ast.OnDelete.SET_DEFAULT
                     )
                 elif token.value == "NO":
                     self.lexer.advance(expecting=["ACTION"])
-                    value = ast.OnDeleteOrUpdate.NO_ACTION
+                    value = ast.OnDelete.NO_ACTION
                 elif token.value == "CASCADE":
-                    value = ast.OnDeleteOrUpdate.CASCADE
+                    value = ast.OnDelete.CASCADE
                 elif token.value == "RESTRICT":
-                    value = ast.OnDeleteOrUpdate.RESTRICT
+                    value = ast.OnDelete.RESTRICT
                 else:
                     raise SQLiteParserImpossibleError(token.value)
 
@@ -272,6 +309,7 @@ class Parser:
             initially_deferred=initially_deferred,
         )
 
+    @debuggable
     def match_not_null_constraint(self):
         self.lexer.check(["NOT"])
         self.lexer.advance(expecting=["NULL"])
@@ -282,6 +320,7 @@ class Parser:
             on_conflict = None
         return ast.NotNullConstraint(on_conflict=on_conflict)
 
+    @debuggable
     def match_primary_key_constraint(self):
         self.lexer.check(["PRIMARY"])
         self.lexer.advance(expecting=["KEY"])
@@ -323,6 +362,7 @@ class Parser:
             ascending=ascending, on_conflict=on_conflict, autoincrement=autoincrement
         )
 
+    @debuggable
     def match_check_constraint(self):
         self.lexer.check(["CHECK"])
         self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
@@ -332,6 +372,7 @@ class Parser:
         self.lexer.advance()
         return ast.CheckConstraint(expr)
 
+    @debuggable
     def match_collate_constraint(self):
         self.lexer.check(["COLLATE"])
         sequence = self.lexer.advance(
@@ -351,6 +392,7 @@ class Parser:
         else:
             raise SQLiteParserImpossibleError(sequence)
 
+    @debuggable
     def match_unique_constraint(self):
         self.lexer.check(["UNIQUE"])
         token = self.lexer.advance()
@@ -360,6 +402,7 @@ class Parser:
             on_conflict = None
         return ast.UniqueConstraint(on_conflict=on_conflict)
 
+    @debuggable
     def match_generated_column_constraint(self):
         token = self.lexer.check(["GENERATED", "AS"])
         if token.value == "GENERATED":
@@ -383,6 +426,7 @@ class Parser:
 
         return ast.GeneratedColumnConstraint(e, storage=storage)
 
+    @debuggable
     def match_default_clause(self):
         self.lexer.check(["DEFAULT"])
         token = self.lexer.advance(
@@ -435,6 +479,7 @@ class Parser:
         else:
             raise SQLiteParserImpossibleError(token.type)
 
+    @debuggable
     def match_on_conflict_clause(self):
         self.lexer.check(["ON"])
         self.lexer.advance(expecting=["CONFLICT"])
@@ -455,6 +500,7 @@ class Parser:
         else:
             raise SQLiteParserImpossibleError(strategy)
 
+    @debuggable
     def match_expression(self, precedence=-1):
         left = self.match_prefix()
 
@@ -470,12 +516,14 @@ class Parser:
             left = self.match_infix(left, p)
         return left
 
+    @debuggable
     def match_infix(self, left, precedence):
         operator_token = self.lexer.current()
         self.lexer.advance()
         right = self.match_expression(precedence)
         return ast.Infix(operator_token.value, left, right)
 
+    @debuggable
     def match_prefix(self):
         token = self.lexer.current()
         if token.type == TokenType.IDENTIFIER:
@@ -483,10 +531,19 @@ class Parser:
             return ast.Identifier(token.value)
         elif token.type == TokenType.LEFT_PARENTHESIS:
             self.lexer.advance()
-            e = self.match_expression()
-            self.lexer.advance(expecting=[TokenType.RIGHT_PARENTHESIS])
-            self.lexer.advance()
-            return e
+            values = []
+            while True:
+                e = self.match_expression()
+                values.append(e)
+                token = self.lexer.check([TokenType.COMMA, TokenType.RIGHT_PARENTHESIS])
+                self.lexer.advance()
+                if token.type == TokenType.RIGHT_PARENTHESIS:
+                    break
+
+            if len(values) == 1:
+                return values[0]
+            else:
+                return ast.ExpressionList(values)
         elif token.type == TokenType.STRING:
             self.lexer.advance()
             return ast.String(token.value)
