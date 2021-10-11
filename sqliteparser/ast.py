@@ -76,6 +76,10 @@ class Node(ABC):
 
 @attrs
 class CreateTableStatement(Node):
+    """
+    A SQL ``CREATE TABLE`` statement.
+    """
+
     name = attrib()
     columns = attrib()
     constraints = attrib(factory=list)
@@ -119,6 +123,10 @@ class CreateTableStatement(Node):
 
 @attrs
 class SelectStatement(Node):
+    """
+    A SQL ``SELECT`` statement.
+    """
+
     columns = attrib()
 
     def as_string(self, *, p):
