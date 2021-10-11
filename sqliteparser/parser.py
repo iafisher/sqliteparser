@@ -12,6 +12,15 @@ def parse(program, *, debug=False):
     return parser.parse()
 
 
+def parse_column(column_string, *, debug=False):
+    """
+    Parse a single column from a ``CREATE TABLE`` statement.
+    """
+    lexer = Lexer(column_string)
+    parser = Parser(lexer, debug=debug)
+    return parser.parse_column()
+
+
 def debuggable(f):
     def wrapped(self, *args, **kwargs):
         name = f.__name__
@@ -67,6 +76,12 @@ class Parser:
                 self.lexer.advance(expecting=[TokenType.SEMICOLON])
 
         return statements
+
+    def parse_column(self):
+        column = self.match_column()
+        if not self.lexer.done():
+            raise SQLiteParserError("trailing input")
+        return column
 
     @debuggable
     def match_statement(self):
@@ -177,7 +192,7 @@ class Parser:
 
         token = self.lexer.advance()
         while True:
-            if token.type == TokenType.KEYWORD:
+            if token is not None and token.type == TokenType.KEYWORD:
                 if token.value == "PRIMARY":
                     constraints.append(self.match_primary_key_constraint())
                 elif token.value == "NOT":
@@ -227,7 +242,7 @@ class Parser:
         foreign_table = self.lexer.advance(expecting=[TokenType.IDENTIFIER]).value
 
         token = self.lexer.advance()
-        if token.type == TokenType.LEFT_PARENTHESIS:
+        if token is not None and token.type == TokenType.LEFT_PARENTHESIS:
             self.lexer.advance()
             foreign_columns = self.match_identifier_list()
             self.lexer.check([TokenType.RIGHT_PARENTHESIS])
@@ -242,6 +257,9 @@ class Parser:
         initially_deferred = None
 
         while True:
+            if token is None:
+                break
+
             if token.value == "ON":
                 delete_or_update = self.lexer.advance(expecting=["DELETE", "UPDATE"])
                 token = self.lexer.advance(
@@ -314,7 +332,11 @@ class Parser:
         self.lexer.check(["NOT"])
         self.lexer.advance(expecting=["NULL"])
         token = self.lexer.advance()
-        if token.type == TokenType.KEYWORD and token.value == "ON":
+        if (
+            token is not None
+            and token.type == TokenType.KEYWORD
+            and token.value == "ON"
+        ):
             on_conflict = self.match_on_conflict_clause()
         else:
             on_conflict = None
@@ -326,7 +348,7 @@ class Parser:
         self.lexer.advance(expecting=["KEY"])
         token = self.lexer.advance()
 
-        if token.type != TokenType.KEYWORD:
+        if token is None or token.type != TokenType.KEYWORD:
             return ast.PrimaryKeyConstraint()
 
         if token.value == "ASC":
@@ -396,7 +418,11 @@ class Parser:
     def match_unique_constraint(self):
         self.lexer.check(["UNIQUE"])
         token = self.lexer.advance()
-        if token.type == TokenType.KEYWORD and token.value == "ON":
+        if (
+            token is not None
+            and token.type == TokenType.KEYWORD
+            and token.value == "ON"
+        ):
             on_conflict = self.match_on_conflict_clause()
         else:
             on_conflict = None

@@ -1,3 +1,4 @@
 from . import ast
-from .parser import parse
+from .exceptions import SQLiteParserError, SQLiteParserImpossibleError
+from .parser import parse, parse_column
 from .utils import quote

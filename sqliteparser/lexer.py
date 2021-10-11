@@ -90,6 +90,7 @@ class Lexer:
         if self.pushed_token is not None:
             ret = self.pushed_token
             self.pushed_token = None
+            self.current_token = ret
             return ret
 
         self.read_whitespace()
@@ -98,7 +99,8 @@ class Lexer:
             if expecting is not None:
                 raise SQLiteParserError("premature end of input")
 
-            return None
+            self.current_token = None
+            return self.current_token
 
         self.current_token = self._advance()
         if expecting is not None:
