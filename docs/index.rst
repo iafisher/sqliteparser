@@ -1,20 +1,20 @@
-.. sqliteparser documentation master file, created by
-   sphinx-quickstart on Mon Oct 11 18:01:21 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to sqliteparser's documentation!
+sqliteparser documentation!
 ========================================
+sqliteparser is a Python library that parses the `dialect of SQL recognized by the SQLite <https://sqlite.org/lang.html>`_. It was built to support `isqlite <https://github.com/iafisher/isqlite>`_.
+
+Contents
+--------
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   installation
+   howto
+   api
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
