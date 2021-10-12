@@ -56,6 +56,22 @@ class ParseColumnTests(unittest.TestCase):
             ),
         )
 
+        self.assertEqual(
+            parse_column("name TEXT NOT NULL CHECK(name != '')"),
+            ast.Column(
+                name="name",
+                definition=ast.ColumnDefinition(
+                    type="TEXT",
+                    constraints=[
+                        ast.NotNullConstraint(),
+                        ast.CheckConstraint(
+                            ast.Infix("!=", ast.Identifier("name"), ast.String(""))
+                        ),
+                    ],
+                ),
+            ),
+        )
+
     def test_parse_column_with_trailing_input(self):
         with self.assertRaises(SQLiteParserError):
             parse_column("name TEXT, age INTEGER")
