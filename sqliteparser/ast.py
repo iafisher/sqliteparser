@@ -1,4 +1,5 @@
 import enum
+import re
 from abc import ABC
 
 from attr import attrib, attrs
@@ -67,6 +68,44 @@ class DefaultValue(StringEnum):
 
 
 class Node(ABC):
+    def accept(self, visitor):
+        """
+        Accept a visitor implementing the visitor pattern.
+
+        For example::
+
+            class RenameVisitor:
+                def __init__(self, old_name, new_name):
+                    self.old_name = old_name
+                    self.new_name = new_name
+
+                def rename(self, node):
+                    return node.accept(self)
+
+                def visit_column(self, node):
+                    if node.name == self.old_name:
+                        return Column(self.new_name, node.definition)
+                    else:
+                        return node
+
+                def visit_default(self, node):
+                    return node
+
+        The implementation uses introspection to avoid having to define ``accept``
+        methods on every ``Node`` subclass and every ``visit_XYZ`` method on the visitor
+        class.
+        """
+        name = snake_case(self.__class__.__name__)
+        visit_method = getattr(visitor, "visit_" + name, None)
+        if visit_method is not None:
+            return visit_method(self)
+        else:
+            default_visit_method = getattr(visitor, "visit_default", None)
+            if default_visit_method is not None:
+                return default_visit_method(self)
+            else:
+                return None
+
     def as_string(self, *, p):
         raise NotImplementedError
 
@@ -374,3 +413,12 @@ class TableName(Node):
 
     def as_string(self, *, p):
         return f"{quote(self.schema_name)}.{quote(self.table_name)}"
+
+
+def snake_case(s):
+    def snake_case_replacer(match):
+        text = match.group(0)
+        return text[0] + "_" + text[1]
+
+    name = re.sub(r"[a-z][A-Z]", snake_case_replacer, s)
+    return name.lower()
