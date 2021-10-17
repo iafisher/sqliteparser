@@ -1,4 +1,4 @@
-def quote(s):
+def quote(s: str) -> str:
     """
     Quotes the identifier.
 

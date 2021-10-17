@@ -1,17 +1,10 @@
 import enum
 import string
+from typing import Any, List, Optional, Tuple, Union
 
-from attr import attrib, attrs
+from attr import attrs
 
 from .exceptions import SQLiteParserError
-
-
-@attrs
-class Token:
-    type = attrib()
-    value = attrib()
-    line = attrib()
-    column = attrib()
 
 
 class TokenType(enum.Enum):
@@ -30,37 +23,56 @@ class TokenType(enum.Enum):
     STRING = enum.auto()
     BLOB = enum.auto()
     INTEGER = enum.auto()
+    EOF = enum.auto()
     UNKNOWN = enum.auto()
 
 
+@attrs(auto_attribs=True)
+class Token:
+    type: TokenType
+    value: Any
+    line: int
+    column: int
+
+
+CheckTokenType = List[Union[str, TokenType, Tuple[TokenType, str]]]
+
+
 class Lexer:
-    def __init__(self, program):
+    program: str
+    index: int
+    line: int
+    column: int
+
+    pushed_token: Optional[Token]
+    current_token: Token
+
+    def __init__(self, program: str) -> None:
         self.program = program
         self.index = 0
         self.line = 1
         self.column = 1
 
         self.pushed_token = None
-        self.current_token = None
         self.advance()
 
-    def current(self):
+    def current(self) -> Token:
         return (
             self.pushed_token if self.pushed_token is not None else self.current_token
         )
 
-    def check(self, types_and_values):
+    def check(self, types_and_values: CheckTokenType) -> Token:
         """
         Checks that the current token matches at least one of the items in
-        `types_and_values`. If the current token does match, it is returned. If not, a
+        ``types_and_values``. If the current token does match, it is returned. If not, a
         SQLiteParserError is raised.
 
-        Each item in `types_and_values` must be one of the following types:
+        Each item in ``types_and_values`` must be one of the following types:
 
-          - A string, which matches a KEYWORD token with that string's value
-          - A TokenType instance, which matches a token with that type
-          - A (TokenType, string) pair, which matches a token with that type and that
-              value.
+          - A string, which matches a ``KEYWORD`` token with that string's value
+          - A ``TokenType`` instance, which matches a token with that type
+          - A ``(TokenType, string)`` pair, which matches a token with that type and
+              that value.
         """
         token = self.current()
         if token is None:
@@ -86,7 +98,7 @@ class Lexer:
         )
         raise SQLiteParserError(f"expected {expected}, got {token.value!r}")
 
-    def advance(self, expecting=None):
+    def advance(self, expecting: Optional[CheckTokenType] = None) -> Token:
         if self.pushed_token is not None:
             ret = self.pushed_token
             self.pushed_token = None
@@ -99,7 +111,7 @@ class Lexer:
             if expecting is not None:
                 raise SQLiteParserError("premature end of input")
 
-            self.current_token = None
+            self.current_token = Token(TokenType.EOF, "", self.line, self.column)
             return self.current_token
 
         self.current_token = self._advance()
@@ -109,7 +121,7 @@ class Lexer:
         self.read_whitespace()
         return self.current_token
 
-    def _advance(self):
+    def _advance(self) -> Token:
         c = self.c()
         if c.upper() == "X" and self.peek() == "'":
             return self.read_blob()
@@ -150,20 +162,20 @@ class Lexer:
         else:
             return self.character_token(TokenType.UNKNOWN)
 
-    def push(self, token):
+    def push(self, token: Token) -> None:
         if self.pushed_token is not None:
             raise SQLiteParserError("token already pushed")
 
         self.pushed_token = token
 
-    def done(self):
+    def done(self) -> bool:
         return self.index == len(self.program)
 
-    def read_whitespace(self):
+    def read_whitespace(self) -> None:
         while not self.done() and self.c().isspace():
             self.next_character()
 
-    def read_symbol(self):
+    def read_symbol(self) -> Token:
         start = self.index
         start_column = self.column
         while not self.done() and is_symbol_character(self.c()):
@@ -185,7 +197,7 @@ class Lexer:
                 column=start_column,
             )
 
-    def read_integer(self):
+    def read_integer(self) -> Token:
         start = self.index
         start_column = self.column
         while not self.done() and self.c().isdigit():
@@ -196,7 +208,7 @@ class Lexer:
             type=TokenType.INTEGER, value=value, line=self.line, column=start_column
         )
 
-    def read_blob(self):
+    def read_blob(self) -> Token:
         start_column = self.column
         characters = []
 
@@ -232,7 +244,9 @@ class Lexer:
             column=start_column,
         )
 
-    def read_generic_string(self, token_type, delimiter, *, allow_doubling=True):
+    def read_generic_string(
+        self, token_type: TokenType, delimiter: str, *, allow_doubling: bool = True
+    ) -> Token:
         start_column = self.column
         characters = []
 
@@ -262,7 +276,7 @@ class Lexer:
             column=start_column,
         )
 
-    def next_character(self):
+    def next_character(self) -> None:
         if self.c() == "\n":
             self.line += 1
             self.column = 1
@@ -271,22 +285,22 @@ class Lexer:
 
         self.index += 1
 
-    def c(self):
+    def c(self) -> str:
         return self.prefix(1)
 
-    def peek(self, n=1):
+    def peek(self, n: int = 1) -> Optional[str]:
         if self.index + n >= len(self.program):
             return None
 
         return self.program[self.index + n]
 
-    def prefix(self, length):
+    def prefix(self, length: int) -> str:
         return self.program[self.index : self.index + length]
 
-    def character_token(self, type):
+    def character_token(self, type: TokenType) -> Token:
         return self.multi_character_token(type, 1)
 
-    def multi_character_token(self, type, length):
+    def multi_character_token(self, type: TokenType, length: int) -> Token:
         value = self.program[self.index : self.index + length]
         line = self.line
         column = self.column
@@ -295,7 +309,7 @@ class Lexer:
         return Token(type=type, value=value, line=line, column=column)
 
 
-def is_symbol_character(c):
+def is_symbol_character(c: str) -> bool:
     return c.isalpha() or c.isdigit() or c == "_"
 
 

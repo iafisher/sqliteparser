@@ -1,8 +1,9 @@
 import enum
 import re
 from abc import ABC
+from typing import List, Optional, Union
 
-from attr import attrib, attrs
+from attr import Factory, attrs
 
 from .utils import quote
 
@@ -106,35 +107,48 @@ class Node(ABC):
             else:
                 return None
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         raise NotImplementedError
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.as_string(p=True)
 
 
-@attrs
+class BaseConstraint(Node):
+    pass
+
+
+class Expression(Node):
+    pass
+
+
+@attrs(auto_attribs=True)
 class CreateTableStatement(Node):
     """
     A SQL ``CREATE TABLE`` statement.
     """
 
-    name = attrib()
-    columns = attrib()
-    constraints = attrib(factory=list)
-    as_select = attrib(default=None)
-    temporary = attrib(default=False)
-    without_rowid = attrib(default=False)
-    if_not_exists = attrib(default=False)
+    name: Union[str, "TableName"]
+    columns: List["Column"]
+    constraints: List[BaseConstraint] = Factory(list)
+    as_select: Optional[Node] = None
+    temporary: bool = False
+    without_rowid: bool = False
+    if_not_exists: bool = False
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         builder = ["CREATE "]
         if self.temporary:
             builder.append("TEMPORARY ")
         builder.append("TABLE ")
         if self.if_not_exists:
             builder.append("IF NOT EXISTS ")
-        builder.append(quote(self.name))
+
+        if isinstance(self.name, TableName):
+            builder.append(str(self.name))
+        else:
+            builder.append(quote(self.name))
+
         if self.as_select:
             builder.append(" AS ")
             builder.append(str(self.as_select))
@@ -160,24 +174,24 @@ class CreateTableStatement(Node):
         return "".join(builder)
 
 
-@attrs
+@attrs(auto_attribs=True)
 class SelectStatement(Node):
     """
     A SQL ``SELECT`` statement.
     """
 
-    columns = attrib()
+    columns: List[Expression]
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         raise NotImplementedError
 
 
-@attrs
+@attrs(auto_attribs=True)
 class Column(Node):
-    name = attrib()
-    definition = attrib()
+    name: str
+    definition: Optional["ColumnDefinition"]
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         if self.definition is None:
             return quote(self.name)
         else:
@@ -185,13 +199,13 @@ class Column(Node):
             return f"{quote(self.name)} {definition}"
 
 
-@attrs
+@attrs(auto_attribs=True)
 class ColumnDefinition(Node):
-    type = attrib(default=None)
-    default = attrib(default=None)
-    constraints = attrib(factory=list)
+    type: Optional[str] = None
+    default: Optional[Expression] = None
+    constraints: List[BaseConstraint] = Factory(list)
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         builder = []
         if self.type is not None:
             builder.append(" ")
@@ -208,42 +222,42 @@ class ColumnDefinition(Node):
         return "".join(builder)
 
 
-@attrs
-class CheckConstraint(Node):
-    expr = attrib()
+@attrs(auto_attribs=True)
+class CheckConstraint(BaseConstraint):
+    expr: Expression
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         e = self.expr.as_string(p=False)
         return f"CHECK({e})"
 
 
-@attrs
-class NamedConstraint(Node):
-    name = attrib()
-    constraint = attrib()
+@attrs(auto_attribs=True)
+class NamedConstraint(BaseConstraint):
+    name: str
+    constraint: BaseConstraint
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         return f"CONSTRAINT {quote(self.name)} {self.constraint}"
 
 
-@attrs
-class NotNullConstraint(Node):
-    on_conflict = attrib(default=None)
+@attrs(auto_attribs=True)
+class NotNullConstraint(BaseConstraint):
+    on_conflict: Optional[OnConflict] = None
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         if self.on_conflict is not None:
             return f"NOT NULL {self.on_conflict}"
         else:
             return "NOT NULL"
 
 
-@attrs
-class PrimaryKeyConstraint(Node):
-    ascending = attrib(default=None)
-    on_conflict = attrib(default=None)
-    autoincrement = attrib(default=False)
+@attrs(auto_attribs=True)
+class PrimaryKeyConstraint(BaseConstraint):
+    ascending: Optional[bool] = None
+    on_conflict: Optional[OnConflict] = None
+    autoincrement: bool = False
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         builder = ["PRIMARY KEY"]
         if self.ascending is not None:
             if self.ascending:
@@ -261,26 +275,26 @@ class PrimaryKeyConstraint(Node):
         return "".join(builder)
 
 
-@attrs
-class CollateConstraint(Node):
-    sequence = attrib()
+@attrs(auto_attribs=True)
+class CollateConstraint(BaseConstraint):
+    sequence: CollatingSequence
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         return f"COLLATE {self.sequence}"
 
 
-@attrs
-class ForeignKeyConstraint(Node):
-    columns = attrib()
-    foreign_table = attrib()
-    foreign_columns = attrib()
-    on_delete = attrib(default=None)
-    on_update = attrib(default=None)
-    match = attrib(default=None)
-    deferrable = attrib(default=None)
-    initially_deferred = attrib(default=None)
+@attrs(auto_attribs=True)
+class ForeignKeyConstraint(BaseConstraint):
+    columns: List[str]
+    foreign_table: str
+    foreign_columns: List[str]
+    on_delete: Optional[OnDelete] = None
+    on_update: Optional[OnUpdate] = None
+    match: Optional[ForeignKeyMatch] = None
+    deferrable: Optional[bool] = None
+    initially_deferred: Optional[bool] = None
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         builder = []
         if self.columns:
             builder.append("FOREIGN KEY (")
@@ -316,107 +330,107 @@ class ForeignKeyConstraint(Node):
         return "".join(builder)
 
 
-@attrs
-class UniqueConstraint(Node):
-    on_conflict = attrib(default=None)
+@attrs(auto_attribs=True)
+class UniqueConstraint(BaseConstraint):
+    on_conflict: Optional[OnConflict] = None
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         if self.on_conflict is not None:
             return f"UNIQUE {self.on_conflict}"
         else:
             return "UNIQUE"
 
 
-@attrs
-class GeneratedColumnConstraint(Node):
-    expression = attrib()
-    storage = attrib(default=None)
+@attrs(auto_attribs=True)
+class GeneratedColumnConstraint(BaseConstraint):
+    expression: Expression
+    storage: Optional[GeneratedColumnStorage] = None
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         e = self.expression.as_string(p=False)
         storage_string = "" if self.storage is None else " " + str(self.storage)
         return f"GENERATED ALWAYS AS ({e}){storage_string}"
 
 
-@attrs
-class Infix(Node):
-    operator = attrib()
-    left = attrib()
-    right = attrib()
+@attrs(auto_attribs=True)
+class Infix(Expression):
+    operator: str
+    left: Expression
+    right: Expression
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         left = self.left.as_string(p=True)
         right = self.right.as_string(p=True)
         core = f"{left} {self.operator} {right}"
         return f"({core})" if p else core
 
 
-@attrs
-class ExpressionList(Node):
-    values = attrib()
+@attrs(auto_attribs=True)
+class ExpressionList(Expression):
+    values: List[Expression]
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         return "(" + ", ".join(v.as_string(p=False) for v in self.values) + ")"
 
 
-@attrs
-class Identifier(Node):
-    value = attrib()
+@attrs(auto_attribs=True)
+class Identifier(Expression):
+    value: str
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         return quote(self.value)
 
 
-@attrs
-class String(Node):
-    value = attrib()
+@attrs(auto_attribs=True)
+class String(Expression):
+    value: str
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         escaped = self.value.replace("'", "''")
         return f"'{escaped}'"
 
 
-@attrs
-class Blob(Node):
-    value = attrib()
+@attrs(auto_attribs=True)
+class Blob(Expression):
+    value: bytes
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         return "X'" + "".join(f"{hex(b)[2:]:0>2}" for b in self.value) + "'"
 
 
-@attrs
-class Integer(Node):
-    value = attrib()
+@attrs(auto_attribs=True)
+class Integer(Expression):
+    value: int
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         return str(self.value)
 
 
-@attrs
-class Null(Node):
-    def as_string(self, *, p):
+@attrs(auto_attribs=True)
+class Null(Expression):
+    def as_string(self, *, p: bool) -> str:
         return "NULL"
 
 
-@attrs
-class Boolean(Node):
-    value = attrib()
+@attrs(auto_attribs=True)
+class Boolean(Expression):
+    value: bool
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         return "TRUE" if self.value else "FALSE"
 
 
-@attrs
+@attrs(auto_attribs=True)
 class TableName(Node):
-    schema_name = attrib()
-    table_name = attrib()
+    schema_name: str
+    table_name: str
 
-    def as_string(self, *, p):
+    def as_string(self, *, p: bool) -> str:
         return f"{quote(self.schema_name)}.{quote(self.table_name)}"
 
 
-def snake_case(s):
-    def snake_case_replacer(match):
+def snake_case(s: str) -> str:
+    def snake_case_replacer(match: re.Match) -> str:
         text = match.group(0)
         return text[0] + "_" + text[1]
 

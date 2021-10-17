@@ -721,3 +721,20 @@ class ParseCreateTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_parse_created_table_statement_with_schema_name(self):
+        sql = """
+        CREATE TABLE temp.people(name);
+        """
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateTableStatement(
+                    name=ast.TableName("temp", "people"),
+                    columns=[
+                        ast.Column(name="name", definition=None),
+                    ],
+                ),
+            ],
+        )
