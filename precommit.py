@@ -37,3 +37,5 @@ def init(precommit):
 
     # Run a custom command on each file.
     # precommit.check(checks.Command("FileCheck", ["check_file"], pass_files=True))
+
+    precommit.check(checks.Command("PythonTypes", [".venv/bin/mypy", "sqliteparser"]))

@@ -1,1 +1,5 @@
 attrs==20.3.0
+mypy==0.910
+mypy-extensions==0.4.3
+toml==0.10.2
+typing-extensions==3.10.0.2
