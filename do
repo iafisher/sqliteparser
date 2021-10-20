@@ -27,6 +27,11 @@ main() {
       exit 1
     fi
 
+    if [[ "$version" < "$current_version" ]]; then
+      echo "New version is less than current version. Aborting."
+      exit 1
+    fi
+
     changed_files="$(git diff --name-only) $(git diff --cached --name-only)"
     # Trim whitespace, courtesy of https://stackoverflow.com/questions/369758/
     changed_files=$(echo "$changed_files" | xargs)
