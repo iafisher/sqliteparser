@@ -111,7 +111,7 @@ class Parser:
         else:
             temporary = False
 
-        token = self.lexer.advance(expecting=["IF", TokenType.IDENTIFIER])
+        token = self.lexer.advance(expecting=["IF", TokenType.IDENTIFIER, "TEMP"])
         if token.value == "IF":
             self.lexer.advance(expecting=["NOT"])
             self.lexer.advance(expecting=["EXISTS"])

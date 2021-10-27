@@ -182,7 +182,7 @@ class Lexer:
             self.next_character()
 
         value = self.program[start : self.index]
-        if value in SQL_KEYWORDS:
+        if value.upper() in SQL_KEYWORDS:
             return Token(
                 type=TokenType.KEYWORD,
                 value=value.upper(),

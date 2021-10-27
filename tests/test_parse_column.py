@@ -32,7 +32,7 @@ class ParseColumnTests(unittest.TestCase):
         )
 
         self.assertEqual(
-            parse_column("id INTEGER NOT NULL"),
+            parse_column("id INTEGER not NULL"),
             ast.Column(
                 name="id",
                 definition=ast.ColumnDefinition(
@@ -57,7 +57,7 @@ class ParseColumnTests(unittest.TestCase):
         )
 
         self.assertEqual(
-            parse_column("name TEXT NOT NULL CHECK(name != '')"),
+            parse_column("name TEXT NOT NULL check(name != '')"),
             ast.Column(
                 name="name",
                 definition=ast.ColumnDefinition(

@@ -731,7 +731,7 @@ class ParseCreateTests(unittest.TestCase):
             parse(sql),
             [
                 ast.CreateTableStatement(
-                    name=ast.TableName("temp", "people"),
+                    name=ast.TableName("TEMP", "people"),
                     columns=[
                         ast.Column(name="name", definition=None),
                     ],
