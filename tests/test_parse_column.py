@@ -98,3 +98,11 @@ class ParseColumnTests(unittest.TestCase):
                 ),
             ),
         )
+
+    def test_parse_column_with_multi_word_type(self):
+        self.assertEqual(
+            parse_column("x smallint unsigned"),
+            ast.Column(
+                name="x", definition=ast.ColumnDefinition(type="smallint unsigned")
+            ),
+        )

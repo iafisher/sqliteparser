@@ -191,32 +191,12 @@ class Parser:
     @debuggable
     def match_column(self) -> ast.Column:
         name_token = self.lexer.check([TokenType.IDENTIFIER])
-        type_token = self.lexer.advance()
-        if type_token.type != TokenType.IDENTIFIER:
+
+        column_type = self.match_column_type()
+        if column_type is None:
             return ast.Column(name=name_token.value, definition=None)
 
-        token = self.lexer.advance()
-        if token.type == TokenType.LEFT_PARENTHESIS:
-            args = []
-            while True:
-                token = self.lexer.advance()
-                if token.type == TokenType.RIGHT_PARENTHESIS:
-                    break
-                elif token.type == TokenType.INTEGER:
-                    args.append(int(token.value))
-                    token = self.lexer.advance()
-                    if token.type == TokenType.COMMA:
-                        continue
-                    elif token.type == TokenType.RIGHT_PARENTHESIS:
-                        break
-                    else:
-                        raise SQLiteParserError("expected comma or right parenthesis")
-
-            token = self.lexer.advance()
-            column_type = ast.ColumnType(name=type_token.value, args=args)
-        else:
-            column_type = type_token.value
-
+        token = self.lexer.current()
         constraints = []
         default = None
         while True:
@@ -250,6 +230,39 @@ class Parser:
                 constraints=constraints,
             ),
         )
+
+    @debuggable
+    def match_column_type(self) -> Optional[Union[str, ast.ColumnType]]:
+        type_token = self.lexer.advance()
+        if type_token.type != TokenType.IDENTIFIER:
+            return None
+
+        token = self.lexer.advance()
+        if token.type == TokenType.LEFT_PARENTHESIS:
+            args = []
+            while True:
+                token = self.lexer.advance()
+                if token.type == TokenType.RIGHT_PARENTHESIS:
+                    break
+                elif token.type == TokenType.INTEGER:
+                    args.append(int(token.value))
+                    token = self.lexer.advance()
+                    if token.type == TokenType.COMMA:
+                        continue
+                    elif token.type == TokenType.RIGHT_PARENTHESIS:
+                        break
+                    else:
+                        raise SQLiteParserError("expected comma or right parenthesis")
+
+            token = self.lexer.advance()
+            return ast.ColumnType(name=type_token.value, args=args)
+        else:
+            # SQL allows for multi-word column types, e.g. `smallint unsigned`.
+            name_parts = [type_token.value]
+            while token.type == TokenType.IDENTIFIER:
+                name_parts.append(token.value)
+                token = self.lexer.advance()
+            return " ".join(name_parts)
 
     @debuggable
     def match_foreign_key_constraint(self) -> ast.ForeignKeyConstraint:
