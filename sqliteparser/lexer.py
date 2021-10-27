@@ -33,6 +33,8 @@ class Token:
     value: Any
     line: int
     column: int
+    # Use to preserve the case of identifiers that also happen to be keywords.
+    original_value: Optional[str] = None
 
 
 CheckTokenType = List[Union[str, TokenType, Tuple[TokenType, str]]]
@@ -186,6 +188,7 @@ class Lexer:
             return Token(
                 type=TokenType.KEYWORD,
                 value=value.upper(),
+                original_value=value,
                 line=self.line,
                 column=start_column,
             )

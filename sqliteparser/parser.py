@@ -183,18 +183,28 @@ class Parser:
         token = self.lexer.current()
         if token.type == TokenType.KEYWORD and token.value == "FOREIGN":
             return self.match_foreign_key_constraint()
-        elif token.type == TokenType.IDENTIFIER:
+        elif token.type == TokenType.IDENTIFIER or token.type == TokenType.KEYWORD:
             return self.match_column()
         else:
             raise SQLiteParserError("expected start of column or constraint")
 
     @debuggable
     def match_column(self) -> ast.Column:
-        name_token = self.lexer.check([TokenType.IDENTIFIER])
+        # SQLite allows some but not all SQL keywords to serve as column names. We are
+        # more permissive here. See #5 for details.
+        name_token = self.lexer.check([TokenType.IDENTIFIER, TokenType.KEYWORD])
+        if name_token.type == TokenType.KEYWORD:
+            # Use ``original_value`` because it preserves the original case of the
+            # identifier instead of putting it in all caps.
+            name = name_token.original_value
+        else:
+            name = name_token.value
+
+        assert name is not None
 
         column_type = self.match_column_type()
         if column_type is None:
-            return ast.Column(name=name_token.value, definition=None)
+            return ast.Column(name=name, definition=None)
 
         token = self.lexer.current()
         constraints = []
@@ -230,7 +240,7 @@ class Parser:
             token = self.lexer.current()
 
         return ast.Column(
-            name=name_token.value,
+            name=name,
             definition=ast.ColumnDefinition(
                 type=column_type,
                 default=default,

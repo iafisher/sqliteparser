@@ -114,3 +114,9 @@ class ParseColumnTests(unittest.TestCase):
             parse_column('"object_id" text NULL'),
             ast.Column(name="object_id", definition=ast.ColumnDefinition(type="text")),
         )
+
+    def test_parse_column_with_keyword_name(self):
+        self.assertEqual(
+            parse_column("end DATE"),
+            ast.Column(name="end", definition=ast.ColumnDefinition(type="DATE")),
+        )
