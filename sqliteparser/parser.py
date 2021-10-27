@@ -217,6 +217,13 @@ class Parser:
                     constraints.append(self.match_generated_column_constraint())
                 elif token.value == "DEFAULT":
                     default = self.match_default_clause()
+                elif token.value == "NULL":
+                    # Django's ORM will produce columns with a NULL constraint, and
+                    # SQLite accepts it although it is not documented and appears to
+                    # have no effect.
+                    self.lexer.advance()
+                else:
+                    raise SQLiteParserError(f"unexpected keyword: {token.value}")
             else:
                 break
 

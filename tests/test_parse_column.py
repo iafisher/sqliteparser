@@ -106,3 +106,11 @@ class ParseColumnTests(unittest.TestCase):
                 name="x", definition=ast.ColumnDefinition(type="smallint unsigned")
             ),
         )
+
+    def test_parse_column_with_null_constraint(self):
+        # According to the SQLite syntax diagrams this isn't legal syntax, but Django
+        # produced it and SQLite accepts it.
+        self.assertEqual(
+            parse_column('"object_id" text NULL'),
+            ast.Column(name="object_id", definition=ast.ColumnDefinition(type="text")),
+        )
