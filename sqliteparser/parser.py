@@ -195,10 +195,30 @@ class Parser:
         if type_token.type != TokenType.IDENTIFIER:
             return ast.Column(name=name_token.value, definition=None)
 
+        token = self.lexer.advance()
+        if token.type == TokenType.LEFT_PARENTHESIS:
+            args = []
+            while True:
+                token = self.lexer.advance()
+                if token.type == TokenType.RIGHT_PARENTHESIS:
+                    break
+                elif token.type == TokenType.INTEGER:
+                    args.append(int(token.value))
+                    token = self.lexer.advance()
+                    if token.type == TokenType.COMMA:
+                        continue
+                    elif token.type == TokenType.RIGHT_PARENTHESIS:
+                        break
+                    else:
+                        raise SQLiteParserError("expected comma or right parenthesis")
+
+            token = self.lexer.advance()
+            column_type = ast.ColumnType(name=type_token.value, args=args)
+        else:
+            column_type = type_token.value
+
         constraints = []
         default = None
-
-        token = self.lexer.advance()
         while True:
             if token is not None and token.type == TokenType.KEYWORD:
                 if token.value == "PRIMARY":
@@ -225,7 +245,7 @@ class Parser:
         return ast.Column(
             name=name_token.value,
             definition=ast.ColumnDefinition(
-                type=type_token.value,
+                type=column_type,
                 default=default,
                 constraints=constraints,
             ),

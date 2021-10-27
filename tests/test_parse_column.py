@@ -75,3 +75,26 @@ class ParseColumnTests(unittest.TestCase):
     def test_parse_column_with_trailing_input(self):
         with self.assertRaises(SQLiteParserError):
             parse_column("name TEXT, age INTEGER")
+
+    def test_parse_compound_column_types(self):
+        self.assertEqual(
+            parse_column("name VARCHAR(500) NOT NULL"),
+            ast.Column(
+                name="name",
+                definition=ast.ColumnDefinition(
+                    type=ast.ColumnType(name="VARCHAR", args=[500]),
+                    constraints=[ast.NotNullConstraint()],
+                ),
+            ),
+        )
+
+        self.assertEqual(
+            parse_column("name FOO(1, 2) NOT NULL"),
+            ast.Column(
+                name="name",
+                definition=ast.ColumnDefinition(
+                    type=ast.ColumnType(name="FOO", args=[1, 2]),
+                    constraints=[ast.NotNullConstraint()],
+                ),
+            ),
+        )

@@ -200,8 +200,18 @@ class Column(Node):
 
 
 @attrs(auto_attribs=True)
+class ColumnType(Node):
+    name: str
+    args: List[int]
+
+    def as_string(self, *, p: bool) -> str:
+        joined_args = ", ".join(map(str, self.args))
+        return f"{quote(self.name)}({joined_args})"
+
+
+@attrs(auto_attribs=True)
 class ColumnDefinition(Node):
-    type: Optional[str] = None
+    type: Optional[Union[ColumnType, str]] = None
     default: Optional[Expression] = None
     constraints: List[BaseConstraint] = Factory(list)
 
