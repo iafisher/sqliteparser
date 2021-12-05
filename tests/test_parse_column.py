@@ -32,6 +32,35 @@ class ParseColumnTests(unittest.TestCase):
         )
 
         self.assertEqual(
+            parse_column("id INTEGER UNIQUE ON CONFLICT ABORT"),
+            ast.Column(
+                name="id",
+                definition=ast.ColumnDefinition(
+                    type="INTEGER",
+                    constraints=[
+                        ast.UniqueConstraint(on_conflict=ast.OnConflict.ABORT)
+                    ],
+                ),
+            ),
+        )
+
+        self.assertEqual(
+            parse_column("name TEXT UNIQUE (name, author) ON CONFLICT ROLLBACK"),
+            ast.Column(
+                name="name",
+                definition=ast.ColumnDefinition(
+                    type="TEXT",
+                    constraints=[
+                        ast.UniqueConstraint(
+                            columns=["name", "author"],
+                            on_conflict=ast.OnConflict.ROLLBACK,
+                        )
+                    ],
+                ),
+            ),
+        )
+
+        self.assertEqual(
             parse_column("id INTEGER not NULL"),
             ast.Column(
                 name="id",

@@ -342,13 +342,23 @@ class ForeignKeyConstraint(BaseConstraint):
 
 @attrs(auto_attribs=True)
 class UniqueConstraint(BaseConstraint):
+    columns: List[str] = Factory(list)
     on_conflict: Optional[OnConflict] = None
 
     def as_string(self, *, p: bool) -> str:
+        builder = []
+        builder.append("UNIQUE")
+
+        if self.columns:
+            builder.append(" (")
+            builder.append(", ".join(self.columns))
+            builder.append(")")
+
         if self.on_conflict is not None:
-            return f"UNIQUE {self.on_conflict}"
-        else:
-            return "UNIQUE"
+            builder.append(" ")
+            builder.append(str(self.on_conflict))
+
+        return "".join(builder)
 
 
 @attrs(auto_attribs=True)

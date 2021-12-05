@@ -479,6 +479,15 @@ class Parser:
     def match_unique_constraint(self) -> ast.UniqueConstraint:
         self.lexer.check(["UNIQUE"])
         token = self.lexer.advance()
+
+        if token is not None and token.type == TokenType.LEFT_PARENTHESIS:
+            self.lexer.advance()
+            columns = self.match_identifier_list()
+            self.lexer.check([TokenType.RIGHT_PARENTHESIS])
+            token = self.lexer.advance()
+        else:
+            columns = []
+
         if (
             token is not None
             and token.type == TokenType.KEYWORD
@@ -487,7 +496,8 @@ class Parser:
             on_conflict = self.match_on_conflict_clause()
         else:
             on_conflict = None
-        return ast.UniqueConstraint(on_conflict=on_conflict)
+
+        return ast.UniqueConstraint(columns=columns, on_conflict=on_conflict)
 
     @debuggable
     def match_generated_column_constraint(self) -> ast.GeneratedColumnConstraint:
