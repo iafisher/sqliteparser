@@ -263,6 +263,8 @@ class NotNullConstraint(BaseConstraint):
 
 @attrs(auto_attribs=True)
 class PrimaryKeyConstraint(BaseConstraint):
+    # NOTE: This is for a PRIMARY KEY constraint on a single column. For a multi-
+    # column table-level constraint, see PrimaryKeyTableConstraint.
     ascending: Optional[bool] = None
     on_conflict: Optional[OnConflict] = None
     autoincrement: bool = False
@@ -281,6 +283,28 @@ class PrimaryKeyConstraint(BaseConstraint):
 
         if self.autoincrement:
             builder.append(" AUTOINCREMENT")
+
+        return "".join(builder)
+
+
+@attrs(auto_attribs=True)
+class PrimaryKeyTableConstraint(BaseConstraint):
+    # NOTE: This is for a table-level PRIMARY KEY constraint. For a constraint on an
+    # individual column, see PrimaryKeyConstraint.
+    columns: List[str]
+    on_conflict: Optional[OnConflict] = None
+
+    def as_string(self, *, p: bool) -> str:
+        builder = ["PRIMARY KEY ("]
+        for i, column in enumerate(self.columns):
+            builder.append(column)
+            if i != len(self.columns) - 1:
+                builder.append(", ")
+        builder.append(")")
+
+        if self.on_conflict is not None:
+            builder.append(" ")
+            builder.append(str(self.on_conflict))
 
         return "".join(builder)
 

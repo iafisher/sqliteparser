@@ -183,6 +183,8 @@ class Parser:
         token = self.lexer.current()
         if token.type == TokenType.KEYWORD and token.value == "FOREIGN":
             return self.match_foreign_key_constraint()
+        elif token.type == TokenType.KEYWORD and token.value == "PRIMARY":
+            return self.match_primary_key_table_constraint()
         elif token.type == TokenType.IDENTIFIER or token.type == TokenType.KEYWORD:
             return self.match_column()
         else:
@@ -404,6 +406,8 @@ class Parser:
 
     @debuggable
     def match_primary_key_constraint(self) -> ast.PrimaryKeyConstraint:
+        # NOTE: Not to be confused with match_primary_key_table_constraint, which is for
+        # table-level constraints.
         self.lexer.check(["PRIMARY"])
         self.lexer.advance(expecting=["KEY"])
         token = self.lexer.advance()
@@ -444,6 +448,26 @@ class Parser:
         return ast.PrimaryKeyConstraint(
             ascending=ascending, on_conflict=on_conflict, autoincrement=autoincrement
         )
+
+    @debuggable
+    def match_primary_key_table_constraint(self) -> ast.PrimaryKeyTableConstraint:
+        # NOTE: Not to be confused with match_primary_key_constraint, which is for
+        # column-level constraints.
+        self.lexer.check(["PRIMARY"])
+        self.lexer.advance(expecting=["KEY"])
+
+        self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
+        self.lexer.advance()
+        columns = self.match_identifier_list()
+        self.lexer.check([TokenType.RIGHT_PARENTHESIS])
+
+        token = self.lexer.advance()
+        if token.value == "ON":
+            on_conflict = self.match_on_conflict_clause()
+        else:
+            on_conflict = None
+
+        return ast.PrimaryKeyTableConstraint(columns=columns, on_conflict=on_conflict)
 
     @debuggable
     def match_check_constraint(self) -> ast.CheckConstraint:
