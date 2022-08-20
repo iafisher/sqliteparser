@@ -625,7 +625,15 @@ class Parser:
             if p is None or precedence >= p:
                 break
 
-            left = self.match_infix(left, p)
+            if token.value == "(":
+                if not isinstance(left, ast.Identifier):
+                    raise SQLiteParserError("function must be an identifier")
+
+                self.lexer.advance()
+                arguments = self.match_expression_list()
+                left = ast.Call(left, arguments)
+            else:
+                left = self.match_infix(left, p)
         return left
 
     @debuggable
@@ -643,15 +651,7 @@ class Parser:
             return ast.Identifier(token.value)
         elif token.type == TokenType.LEFT_PARENTHESIS:
             self.lexer.advance()
-            values = []
-            while True:
-                e = self.match_expression()
-                values.append(e)
-                token = self.lexer.check([TokenType.COMMA, TokenType.RIGHT_PARENTHESIS])
-                self.lexer.advance()
-                if token.type == TokenType.RIGHT_PARENTHESIS:
-                    break
-
+            values = self.match_expression_list()
             if len(values) == 1:
                 return values[0]
             else:
@@ -680,6 +680,17 @@ class Parser:
             else:
                 break
         return identifiers
+
+    def match_expression_list(self) -> List[ast.Expression]:
+        expressions = []
+        while True:
+            e = self.match_expression()
+            expressions.append(e)
+            token = self.lexer.check([TokenType.COMMA, TokenType.RIGHT_PARENTHESIS])
+            self.lexer.advance()
+            if token.type == TokenType.RIGHT_PARENTHESIS:
+                break
+        return expressions
 
 
 # From https://sqlite.org/lang_expr.html
@@ -710,4 +721,5 @@ PRECEDENCE = {
     "/": 6,
     "%": 6,
     "||": 7,
+    "(": 8,
 }

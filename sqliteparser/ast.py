@@ -400,6 +400,17 @@ class Infix(Expression):
 
 
 @attrs(auto_attribs=True)
+class Call(Expression):
+    function: "Identifier"
+    arguments: List[Expression]
+
+    def as_string(self, *, p: bool) -> str:
+        function_string = self.function.as_string(p=False)
+        arguments_string = ", ".join(arg.as_string(p=False) for arg in self.arguments)
+        return f"{function_string}({arguments_string})"
+
+
+@attrs(auto_attribs=True)
 class ExpressionList(Expression):
     values: List[Expression]
 

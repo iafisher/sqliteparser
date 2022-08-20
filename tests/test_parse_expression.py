@@ -92,3 +92,27 @@ class ParseExpressionTests(unittest.TestCase):
                 )
             ],
         )
+
+    def test_parse_function(self):
+        self.assertEqual(
+            parse("SELECT foo(1, 2) + bar(3, baz(4))"),
+            [
+                ast.SelectStatement(
+                    columns=[
+                        ast.Infix(
+                            "+",
+                            ast.Call(
+                                ast.Identifier("foo"), [ast.Integer(1), ast.Integer(2)]
+                            ),
+                            ast.Call(
+                                ast.Identifier("bar"),
+                                [
+                                    ast.Integer(3),
+                                    ast.Call(ast.Identifier("baz"), [ast.Integer(4)]),
+                                ],
+                            ),
+                        )
+                    ]
+                )
+            ],
+        )
