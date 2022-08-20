@@ -764,3 +764,64 @@ class ParseCreateTests(unittest.TestCase):
                 )
             ],
         )
+
+    def test_parse_create_table_statement_with_generated_clause(self):
+        # Regression test for https://github.com/iafisher/sqliteparser/issues/9
+        sql = "create table t2 (c1 text, c2 text generated always as (upper(c1)));"
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateTableStatement(
+                    name="t2",
+                    columns=[
+                        ast.Column(
+                            name="c1",
+                            definition=ast.ColumnDefinition(type="text"),
+                        ),
+                        ast.Column(
+                            name="c2",
+                            definition=ast.ColumnDefinition(
+                                type="text",
+                                constraints=[
+                                    ast.GeneratedColumnConstraint(
+                                        ast.Call(
+                                            ast.Identifier("upper"),
+                                            [ast.Identifier("c1")],
+                                        )
+                                    )
+                                ],
+                            ),
+                        ),
+                    ],
+                )
+            ],
+        )
+
+        sql = "create table t1 (c1 text,c2 generated always as (2+2));"
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateTableStatement(
+                    name="t1",
+                    columns=[
+                        ast.Column(
+                            name="c1",
+                            definition=ast.ColumnDefinition(type="text"),
+                        ),
+                        ast.Column(
+                            name="c2",
+                            definition=ast.ColumnDefinition(
+                                type=None,
+                                constraints=[
+                                    ast.GeneratedColumnConstraint(
+                                        ast.Infix("+", ast.Integer(2), ast.Integer(2))
+                                    )
+                                ],
+                            ),
+                        ),
+                    ],
+                )
+            ],
+        )

@@ -205,9 +205,6 @@ class Parser:
         assert name is not None
 
         column_type = self.match_column_type()
-        if column_type is None:
-            return ast.Column(name=name, definition=None)
-
         token = self.lexer.current()
         constraints = []
         default = None
@@ -241,14 +238,16 @@ class Parser:
 
             token = self.lexer.current()
 
-        return ast.Column(
-            name=name,
-            definition=ast.ColumnDefinition(
+        if column_type is None and default is None and not constraints:
+            definition = None
+        else:
+            definition = ast.ColumnDefinition(
                 type=column_type,
                 default=default,
                 constraints=constraints,
-            ),
-        )
+            )
+
+        return ast.Column(name=name, definition=definition)
 
     @debuggable
     def match_column_type(self) -> Optional[Union[str, ast.ColumnType]]:
