@@ -116,3 +116,29 @@ class ParseExpressionTests(unittest.TestCase):
                 )
             ],
         )
+
+    def test_parse_special_functions(self):
+        self.assertEqual(
+            parse("SELECT count(*)"),
+            [
+                ast.SelectStatement(
+                    columns=[ast.Call(ast.Identifier("count"), [], star=True)]
+                )
+            ],
+        )
+
+        self.assertEqual(
+            parse("SELECT count(DISTINCT x)"),
+            [
+                ast.SelectStatement(
+                    columns=[
+                        ast.Call(
+                            ast.Identifier("count"),
+                            [ast.Identifier("x")],
+                            star=False,
+                            distinct=True,
+                        )
+                    ]
+                )
+            ],
+        )

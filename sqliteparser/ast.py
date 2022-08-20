@@ -403,10 +403,19 @@ class Infix(Expression):
 class Call(Expression):
     function: "Identifier"
     arguments: List[Expression]
+    star: bool = False
+    distinct: bool = False
 
     def as_string(self, *, p: bool) -> str:
         function_string = self.function.as_string(p=False)
-        arguments_string = ", ".join(arg.as_string(p=False) for arg in self.arguments)
+        if self.star:
+            arguments_string = "*"
+        else:
+            arguments_string = ", ".join(
+                arg.as_string(p=False) for arg in self.arguments
+            )
+            if self.distinct:
+                arguments_string = "DISTINCT " + arguments_string
         return f"{function_string}({arguments_string})"
 
 

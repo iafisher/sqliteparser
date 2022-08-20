@@ -629,9 +629,18 @@ class Parser:
                 if not isinstance(left, ast.Identifier):
                     raise SQLiteParserError("function must be an identifier")
 
-                self.lexer.advance()
-                arguments = self.match_expression_list()
-                left = ast.Call(left, arguments)
+                next_token = self.lexer.advance()
+                if next_token.value == "*":
+                    self.lexer.advance(expecting=[TokenType.RIGHT_PARENTHESIS])
+                    self.lexer.advance()
+                    left = ast.Call(left, [], star=True, distinct=False)
+                elif next_token.value == "DISTINCT":
+                    self.lexer.advance()
+                    arguments = self.match_expression_list()
+                    left = ast.Call(left, arguments, star=False, distinct=True)
+                else:
+                    arguments = self.match_expression_list()
+                    left = ast.Call(left, arguments, star=False, distinct=False)
             else:
                 left = self.match_infix(left, p)
         return left
