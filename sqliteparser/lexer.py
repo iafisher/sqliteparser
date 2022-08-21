@@ -20,6 +20,7 @@ class TokenType(enum.Enum):
     LESS_THAN = enum.auto()
     GREATER_THAN_OR_EQ = enum.auto()
     LESS_THAN_OR_EQ = enum.auto()
+    CONCAT = enum.auto()
     STRING = enum.auto()
     BLOB = enum.auto()
     INTEGER = enum.auto()
@@ -157,6 +158,8 @@ class Lexer:
             return self.multi_character_token(TokenType.GREATER_THAN_OR_EQ, 2)
         elif self.prefix(2) == "<=":
             return self.multi_character_token(TokenType.LESS_THAN_OR_EQ, 2)
+        elif self.prefix(2) == "||":
+            return self.multi_character_token(TokenType.CONCAT, 2)
         elif c == ">":
             return self.character_token(TokenType.GREATER_THAN)
         elif c == "<":

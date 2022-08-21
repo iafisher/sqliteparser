@@ -142,3 +142,13 @@ class ParseExpressionTests(unittest.TestCase):
                 )
             ],
         )
+
+    def test_parse_string_concatenation(self):
+        self.assertEqual(
+            parse("SELECT 'a' || 'b'"),
+            [
+                ast.SelectStatement(
+                    columns=[ast.Infix("||", ast.String("a"), ast.String("b"))]
+                )
+            ],
+        )
