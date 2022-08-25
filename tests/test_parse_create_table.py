@@ -825,7 +825,7 @@ class ParseCreateTests(unittest.TestCase):
                 )
             ],
         )
-
+# Regression test for https://github.com/iafisher/sqliteparser/issues/10
         self.assertEqual(
             parse(sql,verbatim=True),
             [
@@ -860,7 +860,7 @@ class ParseCreateTests(unittest.TestCase):
         sql = "create table t2 (c1 text, c2 text generated always as (newfunc(c1)));"
 
         self.assertEqual(
-            parse(sql, verbatim=True),
+            parse(sql, verbatim=True ),
             [
                 ast.CreateTableStatement(
                     name="t2",

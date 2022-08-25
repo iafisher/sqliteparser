@@ -5,7 +5,7 @@ from .exceptions import SQLiteParserError, SQLiteParserImpossibleError
 from .lexer import Lexer, TokenType
 
 
-def parse(program: str, *, debug: bool = False, verbatim: bool = False) -> List[ast.Node]:
+def parse(program: str, *, debug: bool = False, verbatim: bool  = False) -> List[ast.Node]:
     """
     Parse the SQL program into a list of AST objects.
     """
