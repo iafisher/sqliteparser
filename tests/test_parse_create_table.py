@@ -825,3 +825,62 @@ class ParseCreateTests(unittest.TestCase):
                 )
             ],
         )
+
+        self.assertEqual(
+            parse(sql,verbatim=True),
+            [
+                ast.CreateTableStatement(
+                    name="t1",
+                    columns=[
+                        ast.Column(
+                            name="c1",
+                            definition=ast.ColumnDefinition(type="text"),
+                        ),
+                        ast.Column(
+                            name="c2",
+                            definition=ast.ColumnDefinition(
+                                type=None,
+                                constraints=[
+                                    ast.GeneratedColumnConstraint(
+                                        ast.String(value='2+2')
+                                    )
+                                ],
+                            ),
+                        ),
+                    ],
+                )
+            ],
+        )
+
+
+
+
+    def test_parse_create_table_statement_with_generated_clause_and_verbatim(self):
+        # Regression test for https://github.com/iafisher/sqliteparser/issues/10
+        sql = "create table t2 (c1 text, c2 text generated always as (newfunc(c1)));"
+
+        self.assertEqual(
+            parse(sql, verbatim=True),
+            [
+                ast.CreateTableStatement(
+                    name="t2",
+                    columns=[
+                        ast.Column(
+                            name="c1",
+                            definition=ast.ColumnDefinition(type="text"),
+                        ),
+                        ast.Column(
+                            name="c2",
+                            definition=ast.ColumnDefinition(
+                                type="text",
+                                constraints=[
+                                    ast.GeneratedColumnConstraint(
+                                        expression=ast.String(value='newfunc(c1)')
+                                    )
+                                ],
+                            ),
+                        ),
+                    ],
+                )
+            ],
+        )

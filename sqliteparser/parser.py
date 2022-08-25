@@ -5,12 +5,12 @@ from .exceptions import SQLiteParserError, SQLiteParserImpossibleError
 from .lexer import Lexer, TokenType
 
 
-def parse(program: str, *, debug: bool = False) -> List[ast.Node]:
+def parse(program: str, *, debug: bool = False, verbatim: bool = False) -> List[ast.Node]:
     """
     Parse the SQL program into a list of AST objects.
     """
     lexer = Lexer(program)
-    parser = Parser(lexer, debug=debug)
+    parser = Parser(lexer, debug=debug, verbatim=verbatim)
     return parser.parse()
 
 
@@ -64,10 +64,11 @@ class Parser:
     debug: bool
     debug_indent: int
 
-    def __init__(self, lexer: Lexer, *, debug: bool = False) -> None:
+    def __init__(self, lexer: Lexer, *, debug: bool = False, verbatim: bool = False) -> None:
         self.lexer = lexer
         self.debug = debug
         self.debug_indent = 0
+        self.verbatim = verbatim
 
     def parse(self) -> List[ast.Node]:
         statements = []
@@ -472,8 +473,9 @@ class Parser:
     def match_check_constraint(self) -> ast.CheckConstraint:
         self.lexer.check(["CHECK"])
         self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
+        start_index=self.lexer.index
         self.lexer.advance()
-        expr = self.match_expression()
+        expr = self.match_expression(verbatim=self.verbatim, start_index=start_index)
         self.lexer.check([TokenType.RIGHT_PARENTHESIS])
         self.lexer.advance()
         return ast.CheckConstraint(expr)
@@ -520,8 +522,9 @@ class Parser:
             self.lexer.advance(expecting=["AS"])
 
         self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
+        start_index=self.lexer.index
         self.lexer.advance()
-        e = self.match_expression()
+        e = self.match_expression(verbatim=self.verbatim,start_index=start_index)
         self.lexer.check([TokenType.RIGHT_PARENTHESIS])
 
         token = self.lexer.advance()
@@ -555,8 +558,9 @@ class Parser:
 
         # TODO(2021-05-05): Merge this with match_prefix?
         if token.type == TokenType.LEFT_PARENTHESIS:
+            start_index=self.lexer.index
             self.lexer.advance()
-            e = self.match_expression()
+            e = self.match_expression(verbatim=self.verbatim, start_index=start_index)
             self.lexer.check([TokenType.RIGHT_PARENTHESIS])
             self.lexer.advance()
             return e
@@ -612,7 +616,33 @@ class Parser:
             raise SQLiteParserImpossibleError(strategy)
 
     @debuggable
-    def match_expression(self, precedence: int = -1) -> ast.Expression:
+    def match_expression(self, precedence: int = -1, verbatim = False,start_index=0) -> ast.Expression:
+        
+        if verbatim:
+            level = 0
+            literal_expression = None
+            while True:
+
+                if self.lexer.current_token.type == TokenType.RIGHT_PARENTHESIS:
+                    if level == 0:    
+                        literal_expression = ast.String(self.lexer.program[start_index:self.lexer.index-1])        
+                        break
+            
+                    else:
+                        level -= 1
+                        if level < 0:
+                            raise SQLiteParserError('unbalanced parenthesis')
+
+                elif self.lexer.current_token.type == TokenType.LEFT_PARENTHESIS:
+                    level += 1            
+                
+                self.lexer.advance()
+                if self.lexer.done():
+                    raise SQLiteParserError('unbalanced parenthesis')            
+        
+            return literal_expression    
+
+        
         left = self.match_prefix()
 
         while True:
