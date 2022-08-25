@@ -827,7 +827,7 @@ class ParseCreateTests(unittest.TestCase):
         )
 # Regression test for https://github.com/iafisher/sqliteparser/issues/10
         self.assertEqual(
-            parse(sql,verbatim=True),
+            parse(sql,verbatim = True),
             [
                 ast.CreateTableStatement(
                     name="t1",
@@ -857,10 +857,10 @@ class ParseCreateTests(unittest.TestCase):
 
     def test_parse_create_table_statement_with_generated_clause_and_verbatim(self):
         # Regression test for https://github.com/iafisher/sqliteparser/issues/10
-        sql = "create table t2 (c1 text, c2 text generated always as (newfunc(c1)));"
+        sql = "create table t2 (c1 text,  c2 text generated always as (newfunc(c1)));"
 
         self.assertEqual(
-            parse(sql, verbatim=True ),
+            parse(sql, verbatim = True ),
             [
                 ast.CreateTableStatement(
                     name="t2",

@@ -10,7 +10,7 @@ def parse(program: str, *, debug: bool = False, verbatim: bool  = False) -> List
     Parse the SQL program into a list of AST objects.
     """
     lexer = Lexer(program)
-    parser = Parser(lexer, debug=debug, verbatim=verbatim)
+    parser = Parser(lexer, debug=debug, verbatim = verbatim)
     return parser.parse()
 
 
