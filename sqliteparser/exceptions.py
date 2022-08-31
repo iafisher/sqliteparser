@@ -4,3 +4,4 @@ class SQLiteParserError(Exception):
 
 class SQLiteParserImpossibleError(SQLiteParserError):
     pass
+

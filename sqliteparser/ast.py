@@ -1,6 +1,7 @@
 import enum
 import re
 from abc import ABC
+from token import OP
 from typing import List, Optional, Union
 
 from attr import Factory, attrs
@@ -67,6 +68,35 @@ class DefaultValue(StringEnum):
     CURRENT_TIMESTAMP = enum.auto()
     CURRENT_DATE = enum.auto()
 
+class Trigger(StringEnum):
+    BEFORE = enum.auto()
+    AFTER= enum.auto()
+    INSTEAD_OF = enum.auto()
+
+    def __str__(self):
+        if self == Trigger.BEFORE:
+            return "BEFORE"
+        elif self == Trigger.AFTER:
+            return "AFTER"
+        elif self == Trigger.INSTEAD_OF:
+            return "INSTEAD OF"
+        else:
+            return super().__str__()
+
+class Operation(StringEnum):
+    DELETE = enum.auto()
+    INSERT= enum.auto()
+    UPDATE = enum.auto()
+
+    def __str__(self):
+        if self == Operation.DELETE:
+            return "DELETE"
+        elif self == Operation.INSERT:
+            return "INSERT"
+        elif self == Operation.UPDATE:
+            return "UPDATE"
+        else:
+            return super().__str__()
 
 class Node(ABC):
     def accept(self, visitor):
@@ -172,6 +202,57 @@ class CreateTableStatement(Node):
             builder.append(" WITHOUT ROWID")
 
         return "".join(builder)
+
+@attrs(auto_attribs=True)
+class CreateIndexStatement(Node):
+    """
+    A SQL ``CREATE INDEX`` statement.
+    """
+    name: Union[str, "TableName"]
+    table:Union[str, "TableName"]
+    columns: List["Column"]
+    if_not_exists: bool = False
+    unique: bool = False
+    partial:bool = False,
+    where:Expression = None
+
+@attrs(auto_attribs=True)
+class CreateVirtualTableStatement(Node):
+    """
+    A SQL ``CREATE VIRTUAL TABLE`` statement.
+    """
+    name: Union[str, "TableName"]
+    module:str
+    arguments:Optional[List[str]]
+    if_not_exists: bool = False
+
+@attrs(auto_attribs=True)
+class CreateTriggerStatement(Node):
+    """
+    A SQL ``CREATE TRIGGER`` statement.
+    """
+    name: Union[str, "TableName"]
+    table:Union[str, "TableName"]
+    operation:Operation
+    trigger:Trigger
+    when:str
+    statements:List[str]
+    if_not_exists: bool = False
+  
+
+@attrs(auto_attribs=True)
+class CreateViewStatement(Node):
+    """
+    A SQL ``CREATE VIEW`` statement.
+    """
+    name: Union[str, "TableName"]
+    tables: List[Union[str, "TableName"]]
+    if_not_exists: bool = False
+    
+
+
+
+
 
 
 @attrs(auto_attribs=True)
