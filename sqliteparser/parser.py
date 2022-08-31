@@ -7,7 +7,7 @@ from .exceptions import SQLiteParserError, SQLiteParserImpossibleError
 from .lexer import Lexer, TokenType
 
 
-def parse(program: str, *, debug: bool = False, verbatim: bool  = False) -> List[ast.Node]:
+def parse(program: str, *, debug: bool = False, verbatim: bool = False) -> List[ast.Node]:
     """
     Parse the SQL program into a list of AST objects.
     """
@@ -147,7 +147,7 @@ class Parser:
             name_token = token
 
         token = self.lexer.advance(
-            expecting=[TokenType.DOT, TokenType.LEFT_PARENTHESIS])
+            expecting=[TokenType.DOT, TokenType.LEFT_PARENTHESIS,TokenType.KEYWORD])
         if token.type == TokenType.DOT:
             table_name_token = self.lexer.advance(expecting=[TokenType.IDENTIFIER])
             name = ast.TableName(name_token.value, table_name_token.value)
@@ -216,33 +216,25 @@ class Parser:
         self.lexer.check(["ON"])
         token = self.lexer.advance()
         table=token.value
-        self.lexer.advance(expecting=TokenType.LEFT_PARENTHESIS)
-        columns = []
-        while True:
-            token = self.lexer.advance()
-           # if token.type == TokenType.RIGHT_PARENTHESIS:
-            #    break
-            columns.append(self.match_column())
-            token = self.lexer.check([TokenType.COMMA, TokenType.RIGHT_PARENTHESIS])
-            if token.type == TokenType.RIGHT_PARENTHESIS:
-                break
-        token = self.lexer.advance()
-        if token is not None:
-            if token.type == TokenType.KEYWORD and token.value == "WHERE":
-                partial=True
-                start_index = token.index
-                self.lexer.advance()
-                where = self.match_expression(verbatim=self.verbatim, start_index=start_index)
-            else:
-                partial = False
-                where = None   
+        self.lexer.advance(expecting=[TokenType.LEFT_PARENTHESIS])
+        self.lexer.advance()
+        columns = self.match_identifier_list()
+        self.lexer.check([TokenType.RIGHT_PARENTHESIS])  
+        token = self.lexer.advance(expecting=[TokenType.SEMICOLON,TokenType.KEYWORD])
+        if token.type == TokenType.SEMICOLON:
+            where= None
+        else:    
+            self.lexer.check(['WHERE'])
+            start_index = self.lexer.index
+            self.lexer.advance()
+            where = self.match_expression(verbatim=self.verbatim, start_index=start_index)
+   
         return ast.CreateIndexStatement(
             name=name,
             if_not_exists=if_not_exists,
             table=table,
             columns=columns,
             unique=unique,
-            partial=partial,
             where=where)       
 
     @debuggable
@@ -708,14 +700,12 @@ class Parser:
         
         if verbatim:
             level = 0
-            literal_expression = None
+            prev_index=self.lexer.index
             while True:
-
+                      
                 if self.lexer.current_token.type == TokenType.RIGHT_PARENTHESIS:
-                    if level == 0:    
-                        literal_expression = ast.String(self.lexer.program[start_index:self.lexer.index-1])        
+                    if level == 0:      
                         break
-            
                     else:
                         level -= 1
                         if level < 0:
@@ -723,12 +713,16 @@ class Parser:
 
                 elif self.lexer.current_token.type == TokenType.LEFT_PARENTHESIS:
                     level += 1            
-                
+                prev_index=self.lexer.index
                 self.lexer.advance()
-                if self.lexer.done():
-                    raise SQLiteParserError('unbalanced parenthesis')            
-        
-            return literal_expression    
+                if self.lexer.current_token.type == TokenType.SEMICOLON:     
+                    break  
+                if self.lexer.done() :
+                    if level == 0:
+                        break
+                    else:                
+                        raise SQLiteParserError('unbalanced parenthesis')
+            return ast.String(self.lexer.program[start_index:prev_index].rstrip())    
 
         
         left = self.match_prefix()

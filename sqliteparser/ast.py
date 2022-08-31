@@ -213,7 +213,6 @@ class CreateIndexStatement(Node):
     columns: List["Column"]
     if_not_exists: bool = False
     unique: bool = False
-    partial:bool = False,
     where:Expression = None
 
 @attrs(auto_attribs=True)
