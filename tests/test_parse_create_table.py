@@ -825,3 +825,29 @@ class ParseCreateTests(unittest.TestCase):
                 )
             ],
         )
+
+    def test_parse_create_table_statement_with_table_unique_constraint(self):
+        # Regression test for https://github.com/iafisher/sqliteparser/issues/8
+        sql = "create table t1 (c1 text,c2 text,unique (c1,c2))"
+
+        self.assertEqual(
+            parse(sql),
+            [
+                ast.CreateTableStatement(
+                    name="t1",
+                    columns=[
+                        ast.Column(
+                            name="c1", definition=ast.ColumnDefinition(type="text")
+                        ),
+                        ast.Column(
+                            name="c2", definition=ast.ColumnDefinition(type="text")
+                        ),
+                    ],
+                    constraints=[
+                        ast.UniqueTableConstraint(
+                            columns=["c1", "c2"], on_conflict=None
+                        ),
+                    ],
+                )
+            ],
+        )

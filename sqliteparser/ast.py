@@ -308,6 +308,29 @@ class PrimaryKeyTableConstraint(BaseConstraint):
 
         return "".join(builder)
 
+@attrs(auto_attribs=True)
+class UniqueTableConstraint(BaseConstraint):
+    # NOTE: This is for a table-level PRIMARY KEY constraint. For a constraint on an
+    # individual column, see PrimaryKeyConstraint.
+    columns: List[str]
+    on_conflict: Optional[OnConflict] = None
+
+    def as_string(self, *, p: bool) -> str:
+        builder = ["UNIQUE ("]
+        for i, column in enumerate(self.columns):
+            builder.append(column)
+            if i != len(self.columns) - 1:
+                builder.append(", ")
+        builder.append(")")
+
+        if self.on_conflict is not None:
+            builder.append(" ")
+            builder.append(str(self.on_conflict))
+
+        return "".join(builder)
+
+
+
 
 @attrs(auto_attribs=True)
 class CollateConstraint(BaseConstraint):
